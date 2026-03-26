@@ -29,6 +29,14 @@ const userSchema = new mongoose.Schema({
     address: String,
     country: String,
     dateOfBirth: Date,
+    // Academic
+    marks: Number,
+    gpa: Number,
+    course: String,
+    university: String,
+    // Financial
+    income: String,
+    category: String,
   },
   createdAt: {
     type: Date,

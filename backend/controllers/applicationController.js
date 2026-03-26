@@ -1,40 +1,50 @@
-const Application = require('../models/Application');
-const Scholarship = require('../models/Scholarship');
-const User = require('../models/User');
+const prisma = require('../lib/prisma');
 
 exports.applyForScholarship = async (req, res) => {
   try {
-    const scholarship = await Scholarship.findById(req.body.scholarship);
-    
+    const scholarship = await prisma.scholarship.findUnique({
+      where: { id: req.body.scholarship },
+    });
+
     if (!scholarship) {
       return res.status(404).json({ message: 'Scholarship not found' });
     }
-    
+
     if (!scholarship.isActive) {
       return res.status(400).json({ message: 'Scholarship is not active' });
     }
-    
+
     // Check if already applied
-    const existingApplication = await Application.findOne({
-      scholarship: req.body.scholarship,
-      student: req.user._id,
+    const existing = await prisma.application.findUnique({
+      where: {
+        scholarshipId_studentId: {
+          scholarshipId: req.body.scholarship,
+          studentId: req.user.id,
+        },
+      },
     });
-    
-    if (existingApplication) {
+
+    if (existing) {
       return res.status(400).json({ message: 'You have already applied for this scholarship' });
     }
-    
-    const application = await Application.create({
-      scholarship: req.body.scholarship,
-      student: req.user._id,
-      personalInfo: req.body.personalInfo,
-      applicationLetter: req.body.applicationLetter,
-      documents: req.body.documents || [],
+
+    const application = await prisma.application.create({
+      data: {
+        scholarshipId: req.body.scholarship,
+        studentId: req.user.id,
+        personalInfo: req.body.personalInfo || {},
+        applicationLetter: req.body.applicationLetter,
+      },
+      include: {
+        scholarship: { select: { title: true, provider: true } },
+      },
     });
-    
-    await application.populate('scholarship', 'title provider');
-    
-    res.status(201).json(application);
+
+    res.status(201).json({
+      ...application,
+      _id: application.id,
+      scholarship: { ...application.scholarship, _id: application.scholarshipId },
+    });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -42,11 +52,27 @@ exports.applyForScholarship = async (req, res) => {
 
 exports.getMyApplications = async (req, res) => {
   try {
-    const applications = await Application.find({ student: req.user._id })
-      .populate('scholarship', 'title provider amount deadline')
-      .sort('-createdAt');
-    
-    res.json(applications);
+    const applications = await prisma.application.findMany({
+      where: { studentId: req.user.id },
+      include: {
+        scholarship: {
+          select: {
+            id: true, title: true, provider: true, amount: true,
+            deadline: true, currency: true, country: true, category: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Map for frontend compat
+    const mapped = applications.map(a => ({
+      ...a,
+      _id: a.id,
+      scholarship: a.scholarship ? { ...a.scholarship, _id: a.scholarship.id } : null,
+    }));
+
+    res.json(mapped);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -54,21 +80,24 @@ exports.getMyApplications = async (req, res) => {
 
 exports.getApplicationById = async (req, res) => {
   try {
-    const application = await Application.findById(req.params.id)
-      .populate('scholarship')
-      .populate('student', 'name email')
-      .populate('reviewedBy', 'name email');
-    
+    const application = await prisma.application.findUnique({
+      where: { id: req.params.id },
+      include: {
+        scholarship: true,
+        student: { select: { id: true, name: true, email: true } },
+        reviewedBy: { select: { id: true, name: true, email: true } },
+      },
+    });
+
     if (!application) {
       return res.status(404).json({ message: 'Application not found' });
     }
-    
-    // Check if user is owner or admin
-    if (application.student._id.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+
+    if (application.studentId !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized to view this application' });
     }
-    
-    res.json(application);
+
+    res.json({ ...application, _id: application.id });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -76,12 +105,22 @@ exports.getApplicationById = async (req, res) => {
 
 exports.getAllApplications = async (req, res) => {
   try {
-    const applications = await Application.find()
-      .populate('scholarship', 'title provider')
-      .populate('student', 'name email')
-      .sort('-createdAt');
-    
-    res.json(applications);
+    const applications = await prisma.application.findMany({
+      include: {
+        scholarship: { select: { id: true, title: true, provider: true } },
+        student: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const mapped = applications.map(a => ({
+      ...a,
+      _id: a.id,
+      scholarship: a.scholarship ? { ...a.scholarship, _id: a.scholarship.id } : null,
+      student: a.student ? { ...a.student, _id: a.student.id } : null,
+    }));
+
+    res.json(mapped);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -90,23 +129,27 @@ exports.getAllApplications = async (req, res) => {
 exports.updateApplicationStatus = async (req, res) => {
   try {
     const { status, reviewNotes } = req.body;
-    
-    const application = await Application.findById(req.params.id);
-    
+
+    const application = await prisma.application.findUnique({
+      where: { id: req.params.id },
+    });
+
     if (!application) {
       return res.status(404).json({ message: 'Application not found' });
     }
-    
-    application.status = status || application.status;
-    application.reviewNotes = reviewNotes;
-    application.reviewedBy = req.user._id;
-    application.reviewedAt = Date.now();
-    
-    await application.save();
-    
-    res.json(application);
+
+    const updated = await prisma.application.update({
+      where: { id: req.params.id },
+      data: {
+        status: status || application.status,
+        reviewNotes,
+        reviewedById: req.user.id,
+        reviewedAt: new Date(),
+      },
+    });
+
+    res.json({ ...updated, _id: updated.id });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
-

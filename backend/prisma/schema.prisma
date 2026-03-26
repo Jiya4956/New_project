@@ -1,0 +1,189 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  student
+  admin
+}
+
+enum ScholarshipCategory {
+  Academic
+  Need_Based   @map("Need-Based")
+  Merit_Based  @map("Merit-Based")
+  International
+  Government
+  Private
+  Other
+}
+
+enum EducationLevel {
+  High_School  @map("High School")
+  Undergraduate
+  Graduate
+  Postgraduate
+  Any
+}
+
+enum ApplicationStatus {
+  Pending
+  Reviewed
+  Accepted
+  Rejected
+}
+
+enum ForumTag {
+  General
+  Eligibility
+  Application
+  Documents
+  International
+  Government
+  BTech
+  MBA
+  Medicine
+  Tips
+}
+
+model User {
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  password    String?  // nullable for Google OAuth users
+  googleId    String?  @unique
+  role        Role     @default(student)
+  // Profile fields
+  phone       String?
+  address     String?
+  country     String?
+  dateOfBirth DateTime?
+  marks       Float?
+  gpa         Float?
+  course      String?
+  university  String?
+  income      String?
+  category    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  scholarships  Scholarship[]  @relation("CreatedByUser")
+  applications  Application[]  @relation("StudentApplications")
+  reviewed      Application[]  @relation("ReviewedByUser")
+  bookmarks     Bookmark[]
+  forumPosts    ForumPost[]
+  forumComments ForumComment[]
+  upvotedPosts  ForumPost[]    @relation("PostUpvotes")
+  feedbacks     Feedback[]
+}
+
+model Scholarship {
+  id                 String              @id @default(cuid())
+  title              String
+  description        String
+  provider           String
+  category           ScholarshipCategory
+  country            String
+  amount             Float
+  currency           String              @default("USD")
+  deadline           DateTime
+  // Eligibility stored as JSON
+  eligibility        Json?
+  applicationProcess String?
+  documents          String[]
+  website            String?
+  contactEmail       String?
+  contactPhone       String?
+  isActive           Boolean             @default(true)
+  createdBy          User                @relation("CreatedByUser", fields: [createdById], references: [id])
+  createdById        String
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  // Relations
+  applications  Application[]
+  bookmarks     Bookmark[]
+}
+
+model Application {
+  id                String            @id @default(cuid())
+  scholarship       Scholarship       @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  scholarshipId     String
+  student           User              @relation("StudentApplications", fields: [studentId], references: [id], onDelete: Cascade)
+  studentId         String
+  status            ApplicationStatus @default(Pending)
+  personalInfo      Json?
+  applicationLetter String?
+  reviewNotes       String?
+  reviewedBy        User?             @relation("ReviewedByUser", fields: [reviewedById], references: [id])
+  reviewedById      String?
+  reviewedAt        DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@unique([scholarshipId, studentId])
+}
+
+model Bookmark {
+  id            String      @id @default(cuid())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  scholarship   Scholarship @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  scholarshipId String
+  createdAt     DateTime    @default(now())
+
+  @@unique([userId, scholarshipId])
+}
+
+model ForumPost {
+  id         String       @id @default(cuid())
+  title      String
+  content    String
+  author     User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId   String
+  tag        ForumTag     @default(General)
+  upvotes    Int          @default(0)
+  upvotedBy  User[]       @relation("PostUpvotes")
+  comments   ForumComment[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+model ForumComment {
+  id        String    @id @default(cuid())
+  content   String
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId  String
+  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+  createdAt DateTime  @default(now())
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  message   String
+  rating    Int      @default(5)
+  subject   String   @default("General")
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+  createdAt DateTime @default(now())
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  userId    String?
+  message   String
+  response  String
+  category  String   @default("general")
+  createdAt DateTime @default(now())
+}

@@ -16,31 +16,38 @@ import MyApplications from './pages/MyApplications';
 import AdminDashboard from './pages/AdminDashboard';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
-import Feedback from "./pages/Feedback";
-import AdminFeedback from "./pages/AdminFeedback";
-import Recommendations from "./pages/Recommendationss";
+import Feedback from './pages/Feedback';
+import AdminFeedback from './pages/AdminFeedback';
+import Recommendations from './pages/Recommendationss';
+import Forum from './pages/Forum';
+import GoogleCallback from './pages/GoogleCallback';
 
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
           <Navbar />
           <main className="flex-grow">
             <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/feedback" element={<Feedback />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/scholarships" element={<ScholarshipList />} />
-              
+              <Route path="/"               element={<Home />} />
+              <Route path="/login"          element={<Login />} />
+              <Route path="/register"       element={<Register />} />
+              <Route path="/scholarships"   element={<ScholarshipList />} />
               <Route path="/scholarships/:id" element={<ScholarshipDetail />} />
-              <Route path="/apply/:id" element={<ProtectedRoute><ApplyForm /></ProtectedRoute>} />
-              <Route path="/my-applications" element={<ProtectedRoute><MyApplications /></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="/admin" element={<ProtectedRoute admin><AdminDashboard /></ProtectedRoute>} />
-              <Route path="/admin-feedback" element={<AdminFeedback />} />
+              <Route path="/forum"          element={<Forum />} />
+              <Route path="/feedback"       element={<Feedback />} />
               <Route path="/recommendations" element={<Recommendations />} />
+              <Route path="/auth/google/callback" element={<GoogleCallback />} />
+
+              {/* Protected routes */}
+              <Route path="/apply/:id"      element={<ProtectedRoute><ApplyForm /></ProtectedRoute>} />
+              <Route path="/my-applications" element={<ProtectedRoute><MyApplications /></ProtectedRoute>} />
+              <Route path="/profile"        element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+
+              {/* Admin routes */}
+              <Route path="/admin"          element={<ProtectedRoute admin><AdminDashboard /></ProtectedRoute>} />
+              <Route path="/admin-feedback" element={<ProtectedRoute admin><AdminFeedback /></ProtectedRoute>} />
             </Routes>
           </main>
           <Footer />
@@ -52,4 +59,3 @@ function App() {
 }
 
 export default App;
-
