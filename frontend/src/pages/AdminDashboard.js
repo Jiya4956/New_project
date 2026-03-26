@@ -7,7 +7,6 @@ const AdminDashboard = () => {
   const [scholarships, setScholarships] = useState([]);
   const [applications, setApplications] = useState([]);
   const [users, setUsers] = useState([]);
-  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [showForm, setShowForm] = useState(false);

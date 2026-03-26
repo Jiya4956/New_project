@@ -17,7 +17,7 @@ const Forum = () => {
   const [commentText, setCommentText] = useState('');
   const [toastMsg, setToastMsg] = useState('');
 
-  useEffect(() => { fetchPosts(); }, [activeTag]);
+  useEffect(() => { fetchPosts(); }, [activeTag, fetchPosts]);
 
   const fetchPosts = async () => {
     try {

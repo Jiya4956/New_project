@@ -21,7 +21,7 @@ const ScholarshipDetail = () => {
   useEffect(() => { fetchScholarship(); }, [id]);
   useEffect(() => {
     if (user && scholarship) checkStatus();
-  }, [user, scholarship]);
+  }, [user, scholarship, checkStatus]);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
