@@ -123,7 +123,7 @@ const Register = () => {
               <div className="grid grid-cols-2 gap-3">
                 {[
                   { value: 'student', icon: '🎓', label: 'Student', desc: 'Find & apply for scholarships' },
-                  { value: 'admin',   icon: '🛡️', label: 'Admin',   desc: 'Manage scholarship listings' },
+                  
                 ].map(r => (
                   <button
                     key={r.value}
