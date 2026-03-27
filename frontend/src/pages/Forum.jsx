@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/api';
@@ -17,21 +17,21 @@ const Forum = () => {
   const [commentText, setCommentText] = useState('');
   const [toastMsg, setToastMsg] = useState('');
 
-  useEffect(() => { fetchPosts(); }, [activeTag, fetchPosts]);
-
-  const fetchPosts = async () => {
+  // Defined before useEffect to avoid temporal dead zone
+  const fetchPosts = useCallback(async () => {
     try {
       setLoading(true);
       const params = activeTag ? { tag: activeTag } : {};
       const res = await api.get('/api/forum', { params });
       setPosts(res.data || []);
     } catch {
-      // fallback to empty
       setPosts([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTag]);
+
+  useEffect(() => { fetchPosts(); }, [activeTag, fetchPosts]);
 
   const showToast = (msg) => { setToastMsg(msg); setTimeout(() => setToastMsg(''), 3000); };
 

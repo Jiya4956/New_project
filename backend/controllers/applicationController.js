@@ -1,4 +1,6 @@
 const prisma = require('../lib/prisma');
+const email  = require('../lib/emailService');
+const { createNotification, getAdmins } = require('../lib/notificationService');
 
 exports.applyForScholarship = async (req, res) => {
   try {
@@ -36,9 +38,42 @@ exports.applyForScholarship = async (req, res) => {
         applicationLetter: req.body.applicationLetter,
       },
       include: {
-        scholarship: { select: { title: true, provider: true } },
+        scholarship: { select: { title: true, provider: true, amount: true, currency: true } },
+        student:     { select: { id: true, name: true, email: true } },
       },
     });
+
+    // ── Fire notifications & emails (non-blocking) ──────────────────
+    const student = application.student;
+    const sch     = application.scholarship;
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+    // In-app: student
+    createNotification({
+      userId:  student.id,
+      type:    'application_submitted',
+      title:   '✅ Application Submitted!',
+      message: `Your application for "${sch.title}" has been submitted successfully.`,
+      link:    `${frontendUrl}/my-applications`,
+    });
+
+    // Email: student
+    email.sendApplicationSubmitted(student, sch);
+
+    // Notify all admins
+    getAdmins().then(admins => {
+      admins.forEach(admin => {
+        createNotification({
+          userId:  admin.id,
+          type:    'new_application',
+          title:   '📋 New Application',
+          message: `${student.name} applied for "${sch.title}".`,
+          link:    `${frontendUrl}/admin`,
+        });
+        email.sendAdminNewApplication(admin.email, student, sch);
+      });
+    });
+    // ───────────────────────────────────────────────────────────────
 
     res.status(201).json({
       ...application,
@@ -65,7 +100,6 @@ exports.getMyApplications = async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Map for frontend compat
     const mapped = applications.map(a => ({
       ...a,
       _id: a.id,
@@ -132,6 +166,10 @@ exports.updateApplicationStatus = async (req, res) => {
 
     const application = await prisma.application.findUnique({
       where: { id: req.params.id },
+      include: {
+        scholarship: { select: { title: true, provider: true } },
+        student:     { select: { id: true, name: true, email: true } },
+      },
     });
 
     if (!application) {
@@ -147,6 +185,26 @@ exports.updateApplicationStatus = async (req, res) => {
         reviewedAt: new Date(),
       },
     });
+
+    // ── Notifications & emails (non-blocking) ───────────────────────
+    if (status && status !== application.status) {
+      const student = application.student;
+      const sch     = application.scholarship;
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+      // In-app: student
+      createNotification({
+        userId:  student.id,
+        type:    'status_changed',
+        title:   `Application ${status}`,
+        message: `Your application for "${sch.title}" is now ${status}.`,
+        link:    `${frontendUrl}/my-applications`,
+      });
+
+      // Email: student
+      email.sendStatusChanged(student, sch, status, reviewNotes);
+    }
+    // ───────────────────────────────────────────────────────────────
 
     res.json({ ...updated, _id: updated.id });
   } catch (error) {

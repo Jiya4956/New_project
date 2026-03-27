@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
 
 const TABS = ['overview', 'scholarships', 'applications', 'users'];
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [scholarships, setScholarships] = useState([]);
   const [applications, setApplications] = useState([]);
   const [users, setUsers] = useState([]);
@@ -255,15 +257,22 @@ const AdminDashboard = () => {
         {activeTab === 'scholarships' && (
           <div>
             {/* Add / Edit Form */}
-            <div className="mb-6 flex items-center gap-3">
-              <button
-                onClick={() => { setShowForm(!showForm); setEditingId(null); resetForm(); }}
-                className="btn-primary"
-                id="add-scholarship-btn"
-              >
-                {showForm && !editingId ? '✕ Cancel' : '+ Add New Scholarship'}
-              </button>
-            </div>
+            {/* Prominent Add Scholarship CTA */}
+            {!showForm && (
+              <div className="mb-6 p-5 rounded-2xl border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-900/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  <p className="font-bold text-slate-800 dark:text-slate-100 text-lg">➕ Add a New Scholarship</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Create a new listing that students can browse and apply to.</p>
+                </div>
+                <button
+                  onClick={() => navigate('/admin/add-scholarship')}
+                  id="add-scholarship-btn"
+                  className="btn-primary whitespace-nowrap"
+                >
+                  🎓 Add Scholarship
+                </button>
+              </div>
+            )}
 
             {showForm && (
               <div className="card p-6 mb-6 border-2 border-blue-200 dark:border-blue-800 animate-fade-in">

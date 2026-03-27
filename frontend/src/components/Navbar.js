@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './NotificationBell';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -105,6 +106,9 @@ const Navbar = () => {
 
             {user ? (
               <>
+                {/* Notification Bell */}
+                <NotificationBell />
+
                 {/* My Applications quick link */}
                 <Link
                   to="/my-applications"

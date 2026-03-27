@@ -1,4 +1,6 @@
 const prisma = require('../lib/prisma');
+const email  = require('../lib/emailService');
+const { createNotification, getAdmins } = require('../lib/notificationService');
 
 exports.getAllScholarships = async (req, res) => {
   try {
@@ -108,6 +110,21 @@ exports.createScholarship = async (req, res) => {
     });
 
     res.status(201).json({ ...scholarship, _id: scholarship.id });
+
+    // Notify all admins (non-blocking)
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    getAdmins().then(admins => {
+      admins.forEach(admin => {
+        createNotification({
+          userId:  admin.id,
+          type:    'new_scholarship',
+          title:   '🎓 New Scholarship Published',
+          message: `"${scholarship.title}" by ${scholarship.provider} was added.`,
+          link:    `${frontendUrl}/admin`,
+        });
+        email.sendAdminNewScholarship(admin.email, scholarship, req.user.name || 'Admin');
+      });
+    });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

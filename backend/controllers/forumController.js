@@ -1,4 +1,8 @@
 const prisma = require('../lib/prisma');
+const email  = require('../lib/emailService');
+const { createNotification } = require('../lib/notificationService');
+
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 // GET /api/forum
 exports.getPosts = async (req, res) => {
@@ -11,9 +15,7 @@ exports.getPosts = async (req, res) => {
       include: {
         author: { select: { id: true, name: true, email: true } },
         comments: {
-          include: {
-            author: { select: { id: true, name: true } },
-          },
+          include: { author: { select: { id: true, name: true } } },
           orderBy: { createdAt: 'asc' },
         },
         upvotedBy: { select: { id: true } },
@@ -22,7 +24,6 @@ exports.getPosts = async (req, res) => {
       take: 50,
     });
 
-    // Map for frontend compat
     const mapped = posts.map(p => ({
       ...p,
       _id: p.id,
@@ -74,7 +75,10 @@ exports.upvotePost = async (req, res) => {
   try {
     const post = await prisma.forumPost.findUnique({
       where: { id: req.params.id },
-      include: { upvotedBy: { select: { id: true } } },
+      include: {
+        upvotedBy: { select: { id: true } },
+        author: { select: { id: true, name: true, email: true } },
+      },
     });
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
@@ -84,8 +88,8 @@ exports.upvotePost = async (req, res) => {
       await prisma.forumPost.update({
         where: { id: req.params.id },
         data: {
-          upvotes: { decrement: 1 },
-          upvotedBy: { disconnect: { id: req.user.id } },
+          upvotes:    { decrement: 1 },
+          upvotedBy:  { disconnect: { id: req.user.id } },
         },
       });
       res.json({ upvotes: Math.max(0, post.upvotes - 1) });
@@ -93,11 +97,24 @@ exports.upvotePost = async (req, res) => {
       await prisma.forumPost.update({
         where: { id: req.params.id },
         data: {
-          upvotes: { increment: 1 },
+          upvotes:   { increment: 1 },
           upvotedBy: { connect: { id: req.user.id } },
         },
       });
       res.json({ upvotes: post.upvotes + 1 });
+
+      // Notify post author (not self)
+      if (post.author && post.author.id !== req.user.id) {
+        const actorName = req.user.name || 'Someone';
+        createNotification({
+          userId:  post.author.id,
+          type:    'forum_upvote',
+          title:   '👍 Your post got an upvote!',
+          message: `${actorName} upvoted your post "${post.title}".`,
+          link:    `${FRONTEND_URL}/forum`,
+        });
+        email.sendForumActivity(post.author, post, actorName, 'upvote');
+      }
     }
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -110,7 +127,10 @@ exports.addComment = async (req, res) => {
     const { content } = req.body;
     if (!content) return res.status(400).json({ message: 'Comment content required' });
 
-    const post = await prisma.forumPost.findUnique({ where: { id: req.params.id } });
+    const post = await prisma.forumPost.findUnique({
+      where: { id: req.params.id },
+      include: { author: { select: { id: true, name: true, email: true } } },
+    });
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
     await prisma.forumComment.create({
@@ -121,7 +141,7 @@ exports.addComment = async (req, res) => {
       },
     });
 
-    // Fetch all comments for the post
+    // Fetch all comments
     const comments = await prisma.forumComment.findMany({
       where: { postId: req.params.id },
       include: { author: { select: { id: true, name: true } } },
@@ -135,6 +155,19 @@ exports.addComment = async (req, res) => {
     }));
 
     res.json({ comments: mapped });
+
+    // Notify post author (not self)
+    if (post.author && post.author.id !== req.user.id) {
+      const actorName = req.user.name || 'Someone';
+      createNotification({
+        userId:  post.author.id,
+        type:    'forum_comment',
+        title:   '💬 New Comment on Your Post',
+        message: `${actorName} commented on "${post.title}".`,
+        link:    `${FRONTEND_URL}/forum`,
+      });
+      email.sendForumActivity(post.author, post, actorName, 'comment');
+    }
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

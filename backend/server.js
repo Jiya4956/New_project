@@ -28,6 +28,7 @@ app.use('/api', require('./routes/feedbackroutes'));
 app.use('/api/recommendations', require('./routes/recommendations'));
 app.use('/api/bookmarks', require('./routes/bookmarks'));
 app.use('/api/forum', require('./routes/forum'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -83,6 +83,7 @@ model User {
   forumComments ForumComment[]
   upvotedPosts  ForumPost[]    @relation("PostUpvotes")
   feedbacks     Feedback[]
+  notifications Notification[]
 }
 
 model Scholarship {
@@ -185,5 +186,17 @@ model Message {
   message   String
   response  String
   category  String   @default("general")
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // 'application_submitted' | 'status_changed' | 'forum_comment' | 'forum_upvote' | 'new_scholarship' | 'new_user' | 'new_application'
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 }

@@ -1,6 +1,8 @@
 const prisma = require('../lib/prisma');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const jwt    = require('jsonwebtoken');
+const email  = require('../lib/emailService');
+const { createNotification, getAdmins } = require('../lib/notificationService');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -38,6 +40,21 @@ exports.register = async (req, res) => {
       email: user.email,
       role: user.role,
       token: generateToken(user.id),
+    });
+
+    // Notify all admins (non-blocking — runs after response)
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    getAdmins().then(admins => {
+      admins.forEach(admin => {
+        createNotification({
+          userId:  admin.id,
+          type:    'new_user',
+          title:   '👤 New User Registered',
+          message: `${user.name} (${user.email}) just signed up.`,
+          link:    `${frontendUrl}/admin`,
+        });
+        email.sendAdminNewUser(admin.email, user);
+      });
     });
   } catch (error) {
     res.status(400).json({ message: error.message });
