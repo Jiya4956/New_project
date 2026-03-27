@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 
 const Register = () => {
   const [form, setForm] = useState({
-    name: '', email: '', password: '', confirmPassword: '', role: 'student',
+    name: '', email: '', password: '', confirmPassword: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,8 +21,8 @@ const Register = () => {
     if (form.password.length < 6) { setError('Password must be at least 6 characters'); return; }
     setLoading(true);
     try {
-      const userData = await register(form.name, form.email, form.password, form.role);
-      navigate(userData?.role === 'admin' ? '/admin' : '/scholarships');
+      const userData = await register(form.name, form.email, form.password, 'student');
+      navigate('/scholarships');
     } catch (err) {
       setError(typeof err === 'string' ? err : 'Registration failed');
     } finally {
@@ -117,31 +117,6 @@ const Register = () => {
               />
             </div>
 
-            {/* Role selector */}
-            <div>
-              <label className="label">I am a</label>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { value: 'student', icon: '🎓', label: 'Student', desc: 'Find & apply for scholarships' },
-                  { value: 'admin',   icon: '🛡️', label: 'Admin',   desc: 'Manage scholarship listings' },
-                ].map(r => (
-                  <button
-                    key={r.value}
-                    type="button"
-                    onClick={() => setForm(p => ({ ...p, role: r.value }))}
-                    className={`p-4 rounded-2xl border-2 text-left transition-all ${
-                      form.role === r.value
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-slate-200 dark:border-slate-700 hover:border-blue-200'
-                    }`}
-                  >
-                    <div className="text-2xl mb-1">{r.icon}</div>
-                    <div className="font-semibold text-slate-900 dark:text-white text-sm">{r.label}</div>
-                    <div className="text-xs text-slate-400">{r.desc}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
 
             <button
               type="submit"

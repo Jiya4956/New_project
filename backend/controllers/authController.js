@@ -1,7 +1,7 @@
 const prisma = require('../lib/prisma');
 const bcrypt = require('bcryptjs');
-const jwt    = require('jsonwebtoken');
-const email  = require('../lib/emailService');
+const jwt = require('jsonwebtoken');
+const email = require('../lib/emailService');
 const { createNotification, getAdmins } = require('../lib/notificationService');
 
 const generateToken = (id) => {
@@ -12,7 +12,8 @@ const generateToken = (id) => {
 
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
+    // Role is always 'student' — admin accounts can only be created directly in the DB
 
     // Check if user exists
     const userExists = await prisma.user.findUnique({ where: { email } });
@@ -30,7 +31,7 @@ exports.register = async (req, res) => {
         name,
         email,
         password: hashedPassword,
-        role: role || 'student',
+        role: 'student',
       },
     });
 
@@ -47,11 +48,11 @@ exports.register = async (req, res) => {
     getAdmins().then(admins => {
       admins.forEach(admin => {
         createNotification({
-          userId:  admin.id,
-          type:    'new_user',
-          title:   '👤 New User Registered',
+          userId: admin.id,
+          type: 'new_user',
+          title: '👤 New User Registered',
           message: `${user.name} (${user.email}) just signed up.`,
-          link:    `${frontendUrl}/admin`,
+          link: `${frontendUrl}/admin`,
         });
         email.sendAdminNewUser(admin.email, user);
       });
