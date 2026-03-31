@@ -168,10 +168,10 @@ const AdminDashboard = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8 rounded-2xl border border-purple-200/60 dark:border-purple-700/40 bg-gradient-to-r from-purple-600 to-indigo-700 p-6 text-white shadow-lg">
+        <div className="mb-8 rounded-2xl border border-purple-200/60 dark:border-purple-700/40 bg-gradient-to-r from-purple-600 to-indigo-700 p-4 sm:p-6 text-white shadow-lg">
           <div className="flex items-center gap-3 mb-2">
             <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-xl">🛡️</span>
-            <h1 className="text-3xl sm:text-4xl font-extrabold">Admin Control Center</h1>
+            <h1 className="text-2xl sm:text-4xl font-extrabold">Admin Control Center</h1>
           </div>
           <p className="text-purple-100">Manage scholarships, applications, users, and platform analytics</p>
         </div>
@@ -254,14 +254,14 @@ const AdminDashboard = () => {
             {/* Recent Applications quick view */}
             <div className="card p-6">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Recent Applications</h2>
-              <div className="table-container">
+              <div className="table-container overflow-x-auto">
                 <table className="data-table">
                   <thead>
                     <tr>
                       <th>Student</th>
                       <th>Scholarship</th>
                       <th>Status</th>
-                      <th>Applied</th>
+                      <th className="hidden sm:table-cell">Applied</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -277,7 +277,7 @@ const AdminDashboard = () => {
                             'badge-yellow'
                           }`}>{app.status}</span>
                         </td>
-                        <td className="text-slate-400">{new Date(app.createdAt).toLocaleDateString()}</td>
+                        <td className="text-slate-400 hidden sm:table-cell">{new Date(app.createdAt).toLocaleDateString()}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -380,15 +380,15 @@ const AdminDashboard = () => {
 
             {/* Scholarships table */}
             <div className="card overflow-hidden">
-              <div className="table-container">
+              <div className="table-container overflow-x-auto">
                 <table className="data-table">
                   <thead>
                     <tr>
                       <th>Title</th>
                       <th>Category</th>
-                      <th>Country</th>
+                      <th className="hidden md:table-cell">Country</th>
                       <th>Amount</th>
-                      <th>Deadline</th>
+                      <th className="hidden sm:table-cell">Deadline</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -400,11 +400,11 @@ const AdminDashboard = () => {
                           <div className="text-xs text-slate-400">{s.provider}</div>
                         </td>
                         <td><span className="badge badge-blue">{s.category}</span></td>
-                        <td>{s.country}</td>
+                        <td className="hidden md:table-cell">{s.country}</td>
                         <td className="font-semibold text-emerald-600 dark:text-emerald-400">
                           {s.currency} {s.amount?.toLocaleString()}
                         </td>
-                        <td className="text-slate-500">{new Date(s.deadline).toLocaleDateString()}</td>
+                        <td className="text-slate-500 hidden sm:table-cell">{new Date(s.deadline).toLocaleDateString()}</td>
                         <td>
                           <div className="flex items-center gap-2">
                             <button onClick={() => handleEdit(s)} className="btn-ghost text-xs py-1.5 px-3 text-blue-600 dark:text-blue-400">
@@ -427,23 +427,23 @@ const AdminDashboard = () => {
         {/* ── APPLICATIONS TAB ─────────────────────────────────────── */}
         {activeTab === 'applications' && (
           <div className="card overflow-hidden">
-            <div className="table-container">
+            <div className="table-container overflow-x-auto">
               <table className="data-table">
                 <thead>
                   <tr>
                     <th>Student</th>
                     <th>Scholarship</th>
-                    <th>Documents</th>
+                    <th className="hidden md:table-cell">Documents</th>
                     <th>Status</th>
-                    <th>Applied Date</th>
-                    <th>Update Status</th>
+                    <th className="hidden sm:table-cell">Applied Date</th>
+                    <th className="hidden sm:table-cell">Update Status</th>
                     <th>Details</th>
                   </tr>
                 </thead>
                 <tbody>
                   {applications.map(app => (
                     <tr key={app._id}>
-                      <td>
+                      <td className="hidden md:table-cell">
                         <div className="font-medium text-slate-900 dark:text-white">{app.student?.name || '—'}</div>
                         <div className="text-xs text-slate-400">{app.student?.email}</div>
                       </td>
@@ -504,8 +504,8 @@ const AdminDashboard = () => {
                           'badge-yellow'
                         }`}>{app.status}</span>
                       </td>
-                      <td className="text-slate-400">{new Date(app.createdAt).toLocaleDateString()}</td>
-                      <td>
+                      <td className="text-slate-400 hidden sm:table-cell">{new Date(app.createdAt).toLocaleDateString()}</td>
+                      <td className="hidden sm:table-cell">
                         <select
                           value={app.status}
                           onChange={e => handleUpdateStatus(app._id, e.target.value)}
@@ -532,7 +532,7 @@ const AdminDashboard = () => {
 
         {/* ── USERS TAB ──────────────────────────────────────────────── */}
         {activeTab === 'users' && (
-          <div className="card p-6">
+          <div className="card p-4 sm:p-6">
             {users.length === 0 ? (
               <div className="text-center py-8">
                 <div className="text-4xl mb-3">👥</div>
@@ -541,21 +541,21 @@ const AdminDashboard = () => {
                 </p>
               </div>
             ) : (
-              <div className="table-container">
+              <div className="table-container overflow-x-auto">
                 <table className="data-table">
-                  <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Access</th><th>Joined</th><th>Action</th></tr></thead>
+                  <thead><tr><th>Name</th><th className="hidden md:table-cell">Email</th><th>Role</th><th>Access</th><th className="hidden sm:table-cell">Joined</th><th>Action</th></tr></thead>
                   <tbody>
                     {users.map(u => (
                       <tr key={u._id}>
                         <td className="font-medium">{u.name}</td>
-                        <td>{u.email}</td>
+                        <td className="hidden md:table-cell">{u.email}</td>
                         <td><span className={`badge ${u.role === 'admin' ? 'badge-purple' : 'badge-blue'}`}>{u.role}</span></td>
                         <td>
                           <span className={`badge ${u.isActive ? 'badge-green' : 'badge-red'}`}>
                             {u.isActive ? 'Active' : 'Revoked'}
                           </span>
                         </td>
-                        <td className="text-slate-400">{new Date(u.createdAt).toLocaleDateString()}</td>
+                        <td className="text-slate-400 hidden sm:table-cell">{new Date(u.createdAt).toLocaleDateString()}</td>
                         <td>
                           <button
                             type="button"

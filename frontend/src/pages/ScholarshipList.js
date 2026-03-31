@@ -36,7 +36,7 @@ const ScholarshipCard = ({ s, onBookmark, bookmarked, applied }) => {
   const daysLeft = Math.ceil((new Date(s.deadline) - new Date()) / (1000 * 60 * 60 * 24));
 
   return (
-    <div className="card p-5 animate-fadeInUp border border-slate-200/70 dark:border-slate-700/70">
+    <div className="card p-4 sm:p-5 animate-fadeInUp border border-slate-200/70 dark:border-slate-700/70">
       <div className="flex flex-col lg:flex-row lg:items-center gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -62,7 +62,7 @@ const ScholarshipCard = ({ s, onBookmark, bookmarked, applied }) => {
           <div className="flex items-end justify-between mb-4">
             <div>
               <p className="text-xs text-slate-400 mb-0.5">Amount</p>
-              <div className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
+              <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
                 {s.currency} {s.amount?.toLocaleString()}
               </div>
             </div>
@@ -74,17 +74,17 @@ const ScholarshipCard = ({ s, onBookmark, bookmarked, applied }) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link to={`/scholarships/${s._id}`} className="btn-primary text-sm py-2.5 flex-1 text-center">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3">
+            <Link to={`/scholarships/${s._id}`} className="btn-primary text-sm py-2.5 min-w-0 flex-1 text-center">
               Details
             </Link>
             {user && !applied && (
-              <Link to={`/apply/${s._id}`} className="btn-secondary text-sm py-2.5 flex-1 text-center">
+              <Link to={`/apply/${s._id}`} className="btn-secondary text-sm py-2.5 min-w-0 flex-1 text-center">
                 Apply
               </Link>
             )}
             {user && applied && (
-              <span className="inline-flex items-center justify-center gap-1.5 text-sm py-2.5 flex-1 text-center font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl cursor-default">
+              <span className="inline-flex items-center justify-center gap-1.5 text-sm py-2.5 min-w-0 flex-1 text-center font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl cursor-default">
                 ✅ Applied
               </span>
             )}
@@ -204,7 +204,7 @@ const ScholarshipList = () => {
         </div>
 
         {/* Top filter bar */}
-        <div className="card p-4 mb-6 sticky top-20 z-20">
+        <div className="card p-4 mb-6 sticky top-16 sm:top-20 z-20">
           <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
             <div className="flex-1">
               <input
@@ -216,9 +216,9 @@ const ScholarshipList = () => {
                 id="scholarship-search-top"
               />
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:flex lg:flex-row gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-row gap-2">
               <Select value={categoryValue} onValueChange={(v) => handleFilterChange('category', v === 'all' ? '' : v)}>
-                <SelectTrigger className="min-w-[150px]">
+                <SelectTrigger className="w-full min-w-0 sm:min-w-[150px]">
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent>
@@ -227,7 +227,7 @@ const ScholarshipList = () => {
                 </SelectContent>
               </Select>
               <Select value={educationValue} onValueChange={(v) => handleFilterChange('educationLevel', v === 'all' ? '' : v)}>
-                <SelectTrigger className="min-w-[150px]">
+                <SelectTrigger className="w-full min-w-0 sm:min-w-[150px]">
                   <SelectValue placeholder="Any Level" />
                 </SelectTrigger>
                 <SelectContent>
@@ -236,14 +236,14 @@ const ScholarshipList = () => {
                 </SelectContent>
               </Select>
               <Select value={filters.sort} onValueChange={(v) => handleFilterChange('sort', v)}>
-                <SelectTrigger className="min-w-[150px]">
+                <SelectTrigger className="w-full min-w-0 sm:min-w-[150px]">
                   <SelectValue placeholder="Sort By" />
                 </SelectTrigger>
                 <SelectContent>
                   {SORT_OPTS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Button variant="outline" onClick={() => setFiltersOpen(!filtersOpen)} className="text-sm px-4 py-2.5">
+              <Button variant="outline" onClick={() => setFiltersOpen(!filtersOpen)} className="text-sm px-4 py-2.5 w-full sm:w-auto">
                 More Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}
               </Button>
             </div>

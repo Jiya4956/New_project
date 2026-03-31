@@ -295,12 +295,12 @@ const ApplyForm = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-2">Apply for Scholarship</h1>
           {scholarship && (
-            <div className="card p-4 flex items-center gap-4 mt-4 border-l-4 border-blue-500">
+            <div className="card p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mt-4 border-l-4 border-blue-500">
               <div className="flex-1">
                 <p className="font-bold text-slate-900 dark:text-white">{scholarship.title}</p>
                 <p className="text-sm text-slate-500">{scholarship.provider} · 🌍 {scholarship.country}</p>
               </div>
-              <div className="text-right">
+              <div className="text-left sm:text-right w-full sm:w-auto">
                 <p className="text-xs text-slate-400">Amount</p>
                 <p className="font-bold text-emerald-600 dark:text-emerald-400 text-lg">
                   {scholarship.currency} {scholarship.amount?.toLocaleString()}
@@ -311,12 +311,12 @@ const ApplyForm = () => {
         </div>
 
         {/* Step indicator */}
-        <div className="flex items-center mb-8">
+        <div className="flex items-center mb-8 overflow-x-auto pb-2">
           {steps.map((s, i) => (
             <React.Fragment key={s.id}>
               <button
                 onClick={() => step > s.id && setStep(s.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
                   step === s.id
                     ? 'bg-blue-600 text-white shadow-md'
                     : step > s.id
@@ -343,7 +343,7 @@ const ApplyForm = () => {
         <form onSubmit={handleSubmit}>
           {/* STEP 1 - Personal */}
           {step === 1 && (
-            <div className="card p-8 animate-fade-in">
+            <div className="card p-5 sm:p-8 animate-fade-in">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">👤 Personal Information</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Pre-filled from your profile. Update as needed.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -380,7 +380,7 @@ const ApplyForm = () => {
                   setStep(2);
                 }}
                 disabled={!isPersonalComplete}
-                className="btn-primary mt-6 px-8 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary mt-6 px-6 sm:px-8 py-3 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next: Education →
               </button>
@@ -389,7 +389,7 @@ const ApplyForm = () => {
 
           {/* STEP 2 - Education */}
           {step === 2 && (
-            <div className="card p-8 animate-fade-in">
+            <div className="card p-5 sm:p-8 animate-fade-in">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">🎓 Education Details</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Academic information for eligibility verification.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -432,8 +432,8 @@ const ApplyForm = () => {
                   </select>
                 </div>
               </div>
-              <div className="flex gap-3 mt-6">
-                <button type="button" onClick={() => setStep(1)} className="btn-secondary px-6 py-3">← Back</button>
+              <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                <button type="button" onClick={() => setStep(1)} className="btn-secondary px-6 py-3 w-full sm:w-auto">← Back</button>
                 <button
                   type="button"
                   onClick={() => {
@@ -445,7 +445,7 @@ const ApplyForm = () => {
                     setStep(3);
                   }}
                   disabled={!isEducationComplete}
-                  className="btn-primary px-8 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="btn-primary px-8 py-3 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next: Statement →
                 </button>
@@ -455,7 +455,7 @@ const ApplyForm = () => {
 
           {/* STEP 3 - Application Letter */}
           {step === 3 && (
-            <div className="card p-8 animate-fade-in">
+            <div className="card p-5 sm:p-8 animate-fade-in">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">📝 Application Statement</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
                 Write a compelling statement explaining why you deserve this scholarship (min. 150 words recommended)
@@ -495,7 +495,7 @@ const ApplyForm = () => {
                               const isImage = meta?.mimetype.startsWith('image/');
                               return (
                                 <div className="space-y-2">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex flex-wrap items-center gap-2">
                                     <a
                                       href={meta?.url}
                                       target="_blank"
@@ -549,7 +549,7 @@ const ApplyForm = () => {
                               const isImage = meta?.mimetype.startsWith('image/');
                               return (
                                 <div className="space-y-2">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex flex-wrap items-center gap-2">
                                     <a
                                       href={meta?.url}
                                       target="_blank"
@@ -608,8 +608,8 @@ const ApplyForm = () => {
                   Please wait until all document uploads are complete.
                 </p>
               )}
-              <div className="flex gap-3 mt-6">
-                <button type="button" onClick={() => setStep(2)} className="btn-secondary px-6 py-3">← Back</button>
+              <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                <button type="button" onClick={() => setStep(2)} className="btn-secondary px-6 py-3 w-full sm:w-auto">← Back</button>
                 <button
                   type="submit"
                   disabled={loading || !isFormComplete}
