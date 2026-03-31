@@ -8,9 +8,35 @@ dotenv.config();
 
 const app = express();
 
+const allowedOrigins = (
+  process.env.FRONTEND_URLS ||
+  process.env.FRONTEND_URL ||
+  'http://localhost:3000'
+)
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true
+  if (allowedOrigins.includes(origin)) return true
+
+  // Support Vercel preview/prod domains without listing every preview URL
+  if (origin.endsWith('.vercel.app')) return true
+
+  return false
+}
+
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin(origin, callback) {
+    // Allow non-browser requests (curl, server-to-server, health checks)
+    if (isAllowedOrigin(origin)) {
+      return callback(null, true)
+    }
+
+    return callback(new Error('Not allowed by CORS'))
+  },
   credentials: true,
 }));
 app.use(express.json());
