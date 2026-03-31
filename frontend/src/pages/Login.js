@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+const BACKEND_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const GOOGLE_AUTH_URL = `${BACKEND_BASE_URL}/api/auth/google`;
+
 const Login = () => {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -116,7 +119,7 @@ const Login = () => {
 
           {/* Google OAuth */}
           <a
-            href="http://localhost:5000/api/auth/google"
+            href={GOOGLE_AUTH_URL}
             className="w-full flex items-center justify-center gap-3 px-6 py-3.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-700 dark:text-slate-200 font-semibold hover:bg-slate-50 dark:hover:bg-slate-600 transition-all duration-200 shadow-sm hover:shadow-md"
             id="google-login"
           >
