@@ -9,7 +9,7 @@ const Register = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
-  const { register } = useAuth();
+  const { register, fetchUser, getPostAuthRedirect } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = e => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
@@ -21,8 +21,9 @@ const Register = () => {
     if (form.password.length < 6) { setError('Password must be at least 6 characters'); return; }
     setLoading(true);
     try {
-      const userData = await register(form.name, form.email, form.password, 'student');
-      navigate('/scholarships');
+      await register(form.name, form.email, form.password, 'student');
+      const freshUser = await fetchUser();
+      navigate(getPostAuthRedirect(freshUser), { replace: true });
     } catch (err) {
       setError(typeof err === 'string' ? err : 'Registration failed');
     } finally {
@@ -70,7 +71,7 @@ const Register = () => {
               <input
                 id="reg-name" name="name" type="text"
                 value={form.name} onChange={handleChange}
-                required className="input" placeholder="John Doe"
+                required className="input" placeholder="Your Name"
               />
             </div>
             <div>
@@ -113,7 +114,7 @@ const Register = () => {
                 type={showPass ? 'text' : 'password'}
                 value={form.confirmPassword} onChange={handleChange}
                 required className={`input ${form.confirmPassword && form.password !== form.confirmPassword ? 'border-red-400 ring-1 ring-red-400' : ''}`}
-                placeholder="Repeat password"
+                placeholder="Repeat your password"
               />
             </div>
 

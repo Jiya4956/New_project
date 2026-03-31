@@ -71,6 +71,9 @@ exports.login = async (req, res) => {
     if (!user || !user.password) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
+    if (!user.isActive) {
+      return res.status(403).json({ message: 'Your account access has been revoked. Contact admin.' });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
@@ -96,6 +99,7 @@ exports.getProfile = async (req, res) => {
       where: { id: req.user.id },
       select: {
         id: true, name: true, email: true, role: true,
+        isActive: true,
         phone: true, address: true, country: true, dateOfBirth: true,
         marks: true, gpa: true, course: true, university: true,
         income: true, category: true, createdAt: true, googleId: true,
@@ -108,6 +112,7 @@ exports.getProfile = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      isActive: user.isActive,
       googleId: user.googleId,
       createdAt: user.createdAt,
       profile: {
@@ -177,6 +182,7 @@ exports.getAllUsers = async (req, res) => {
     const users = await prisma.user.findMany({
       select: {
         id: true, name: true, email: true, role: true, createdAt: true,
+        isActive: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -185,5 +191,29 @@ exports.getAllUsers = async (req, res) => {
     res.json(users.map(u => ({ ...u, _id: u.id })));
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+exports.updateUserAccess = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    if (typeof isActive !== 'boolean') {
+      return res.status(400).json({ message: 'isActive must be boolean' });
+    }
+    if (req.user.id === id && isActive === false) {
+      return res.status(400).json({ message: 'You cannot revoke your own access' });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { isActive },
+      select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
+    });
+
+    res.json({ ...updated, _id: updated.id });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
 };

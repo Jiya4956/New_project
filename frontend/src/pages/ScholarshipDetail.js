@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/api';
@@ -18,24 +18,19 @@ const ScholarshipDetail = () => {
   const [applied, setApplied] = useState(false);
   const [toast, setToast] = useState(null);
 
-  useEffect(() => { fetchScholarship(); }, [id]);
-  useEffect(() => {
-    if (user && scholarship) checkStatus();
-  }, [user, scholarship, checkStatus]);
-
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), 2500);
   };
 
-  const fetchScholarship = async () => {
+  const fetchScholarship = useCallback(async () => {
     try {
       const res = await api.get(`/api/scholarships/${id}`);
       setScholarship(res.data);
     } catch { } finally { setLoading(false); }
-  };
+  }, [id]);
 
-  const checkStatus = async () => {
+  const checkStatus = useCallback(async () => {
     try {
       const [bookmarksRes, appsRes] = await Promise.all([
         api.get('/api/bookmarks'),
@@ -46,7 +41,12 @@ const ScholarshipDetail = () => {
       const apps = appsRes.data || [];
       setApplied(apps.some(a => (a.scholarship?._id || a.scholarship) === id));
     } catch {}
-  };
+  }, [id]);
+
+  useEffect(() => { fetchScholarship(); }, [fetchScholarship]);
+  useEffect(() => {
+    if (user && scholarship) checkStatus();
+  }, [user, scholarship, checkStatus]);
 
   const handleBookmark = async () => {
     if (!user) { navigate('/login'); return; }

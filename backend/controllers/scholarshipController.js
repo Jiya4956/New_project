@@ -89,7 +89,7 @@ exports.getScholarshipById = async (req, res) => {
 exports.createScholarship = async (req, res) => {
   try {
     const { title, description, provider, category, country, amount, currency,
-            deadline, educationLevel, website, applicationProcess, documents } = req.body;
+            deadline, educationLevel, website, applicationProcess, documents, contactEmail } = req.body;
 
     const scholarship = await prisma.scholarship.create({
       data: {
@@ -103,6 +103,7 @@ exports.createScholarship = async (req, res) => {
         deadline: new Date(deadline),
         eligibility: { educationLevel: educationLevel || 'Any' },
         website,
+        contactEmail,
         applicationProcess,
         documents: documents || [],
         createdById: req.user.id,
@@ -145,7 +146,7 @@ exports.updateScholarship = async (req, res) => {
     }
 
     const { title, description, provider, category, country, amount, currency,
-            deadline, educationLevel, website, applicationProcess } = req.body;
+            deadline, educationLevel, website, applicationProcess, documents, contactEmail } = req.body;
 
     const data = {};
     if (title) data.title = title;
@@ -158,7 +159,9 @@ exports.updateScholarship = async (req, res) => {
     if (deadline) data.deadline = new Date(deadline);
     if (educationLevel) data.eligibility = { educationLevel };
     if (website !== undefined) data.website = website;
+    if (contactEmail !== undefined) data.contactEmail = contactEmail;
     if (applicationProcess !== undefined) data.applicationProcess = applicationProcess;
+    if (documents !== undefined) data.documents = Array.isArray(documents) ? documents : [];
 
     scholarship = await prisma.scholarship.update({
       where: { id: req.params.id },

@@ -60,6 +60,7 @@ model User {
   password    String?  // nullable for Google OAuth users
   googleId    String?  @unique
   role        Role     @default(student)
+  isActive    Boolean  @default(true)
   // Profile fields
   phone       String?
   address     String?

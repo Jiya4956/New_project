@@ -1,8 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/api';
 
 const TABS = ['overview', 'scholarships', 'applications', 'users'];
+
+const getDocumentMeta = (docEntry) => {
+  if (!docEntry) return null;
+  if (typeof docEntry === 'string') {
+    return {
+      url: docEntry,
+      originalName: docEntry.split('/').pop() || 'Uploaded file',
+      mimetype: '',
+    };
+  }
+  return {
+    url: docEntry.url || '',
+    originalName: docEntry.originalName || docEntry.filename || 'Uploaded file',
+    mimetype: docEntry.mimetype || '',
+  };
+};
+const isImageDocument = (meta) => meta?.mimetype?.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif)$/i.test(meta?.url || '');
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -96,6 +113,25 @@ const AdminDashboard = () => {
     } catch {}
   };
 
+  const handleDownloadAllDocs = (documentsMap) => {
+    const entries = Object.values(documentsMap || {})
+      .map(getDocumentMeta)
+      .filter((doc) => doc?.url);
+    entries.forEach((doc) => {
+      window.open(doc.url, '_blank', 'noopener,noreferrer');
+    });
+  };
+
+  const handleToggleUserAccess = async (userId, isActive) => {
+    try {
+      const res = await api.put(`/api/auth/users/${userId}/access`, { isActive: !isActive });
+      setUsers((prev) => prev.map((u) => (u._id === userId ? { ...u, isActive: res.data.isActive } : u)));
+      showToast(`User access ${res.data.isActive ? 'restored' : 'revoked'}`);
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to update user access', 'error');
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       title: '', description: '', provider: '', category: '',
@@ -132,9 +168,12 @@ const AdminDashboard = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white mb-2">Admin Dashboard</h1>
-          <p className="text-slate-500 dark:text-slate-400">Manage scholarships, applications, and platform analytics</p>
+        <div className="mb-8 rounded-2xl border border-purple-200/60 dark:border-purple-700/40 bg-gradient-to-r from-purple-600 to-indigo-700 p-6 text-white shadow-lg">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-xl">🛡️</span>
+            <h1 className="text-3xl sm:text-4xl font-extrabold">Admin Control Center</h1>
+          </div>
+          <p className="text-purple-100">Manage scholarships, applications, users, and platform analytics</p>
         </div>
 
         {/* Stats grid */}
@@ -394,9 +433,11 @@ const AdminDashboard = () => {
                   <tr>
                     <th>Student</th>
                     <th>Scholarship</th>
+                    <th>Documents</th>
                     <th>Status</th>
                     <th>Applied Date</th>
                     <th>Update Status</th>
+                    <th>Details</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -408,6 +449,52 @@ const AdminDashboard = () => {
                       </td>
                       <td>
                         <div className="truncate max-w-[180px] font-medium">{app.scholarship?.title || '—'}</div>
+                      </td>
+                      <td>
+                        {app.personalInfo?.documents && Object.keys(app.personalInfo.documents).length > 0 ? (
+                          <div className="max-w-[240px] space-y-2">
+                            <div className="flex flex-wrap gap-1">
+                              {Object.entries(app.personalInfo.documents).map(([docName, docEntry]) => {
+                                const meta = getDocumentMeta(docEntry);
+                                return meta?.url ? (
+                                  <a
+                                    key={docName}
+                                    href={meta.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center px-2 py-1 rounded-full text-[11px] bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700 hover:underline"
+                                    title={`${docName} - ${meta.originalName}`}
+                                  >
+                                    📎 {meta.originalName.length > 20 ? `${meta.originalName.slice(0, 20)}...` : meta.originalName}
+                                  </a>
+                                ) : null;
+                              })}
+                            </div>
+                            {(() => {
+                              const firstImageDoc = Object.values(app.personalInfo.documents || {})
+                                .map(getDocumentMeta)
+                                .find((meta) => meta?.url && isImageDocument(meta));
+                              return firstImageDoc ? (
+                                <a href={firstImageDoc.url} target="_blank" rel="noreferrer">
+                                  <img
+                                    src={firstImageDoc.url}
+                                    alt={firstImageDoc.originalName}
+                                    className="h-12 w-12 rounded-md object-cover border border-slate-200 dark:border-slate-700"
+                                  />
+                                </a>
+                              ) : null;
+                            })()}
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadAllDocs(app.personalInfo?.documents)}
+                              className="text-[11px] text-indigo-600 hover:underline"
+                            >
+                              Download all
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400">No documents</span>
+                        )}
                       </td>
                       <td>
                         <span className={`badge ${
@@ -426,6 +513,14 @@ const AdminDashboard = () => {
                         >
                           {['Pending','Reviewed','Accepted','Rejected'].map(s => <option key={s}>{s}</option>)}
                         </select>
+                      </td>
+                      <td>
+                        <Link
+                          to={`/admin/applications/${app._id}`}
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          View
+                        </Link>
                       </td>
                     </tr>
                   ))}
@@ -448,14 +543,32 @@ const AdminDashboard = () => {
             ) : (
               <div className="table-container">
                 <table className="data-table">
-                  <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th></tr></thead>
+                  <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Access</th><th>Joined</th><th>Action</th></tr></thead>
                   <tbody>
                     {users.map(u => (
                       <tr key={u._id}>
                         <td className="font-medium">{u.name}</td>
                         <td>{u.email}</td>
                         <td><span className={`badge ${u.role === 'admin' ? 'badge-purple' : 'badge-blue'}`}>{u.role}</span></td>
+                        <td>
+                          <span className={`badge ${u.isActive ? 'badge-green' : 'badge-red'}`}>
+                            {u.isActive ? 'Active' : 'Revoked'}
+                          </span>
+                        </td>
                         <td className="text-slate-400">{new Date(u.createdAt).toLocaleDateString()}</td>
+                        <td>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleUserAccess(u._id, !!u.isActive)}
+                            className={`text-xs px-3 py-1.5 rounded-lg border ${
+                              u.isActive
+                                ? 'border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20'
+                                : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-900/20'
+                            }`}
+                          >
+                            {u.isActive ? 'Revoke' : 'Restore'}
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

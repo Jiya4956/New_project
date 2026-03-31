@@ -11,6 +11,15 @@ const genAI = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "your
 
 console.log(genAI ? "🤖 Chatbot: Gemini AI initialized" : "⚠️ Chatbot: No API key — using fallback mode");
 
+// Configure preferred Gemini models via env (comma-separated).
+// Defaults to broadly supported models for this SDK/API generation.
+const MODEL_CANDIDATES = (process.env.GEMINI_MODELS || "gemini-1.5-flash,gemini-1.5-pro")
+  .split(",")
+  .map((m) => m.trim())
+  .filter(Boolean);
+
+const CHATBOT_MODE = (process.env.CHATBOT_MODE || "basic").toLowerCase();
+
 // Helper: retry with backoff for rate-limit errors
 const withRetry = async (fn, retries = 2, delayMs = 2000) => {
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -177,6 +186,189 @@ const getFallbackResponse = async (message, user = null) => {
   return generalResponses[Math.floor(Math.random() * generalResponses.length)];
 };
 
+const detectCountryFromMessage = (message) => {
+  const lower = message.toLowerCase();
+  const countryMap = [
+    { key: "india", value: "India" },
+    { key: "usa", value: "USA" },
+    { key: "united states", value: "USA" },
+    { key: "uk", value: "UK" },
+    { key: "united kingdom", value: "UK" },
+    { key: "canada", value: "Canada" },
+    { key: "australia", value: "Australia" },
+  ];
+
+  const match = countryMap.find((item) => lower.includes(item.key));
+  return match ? match.value : null;
+}
+
+const formatScholarshipSuggestions = (scholarships) => {
+  return scholarships
+    .map((s) => {
+      const amount = `${s.currency} ${Number(s.amount).toLocaleString()}`;
+      const deadline = new Date(s.deadline).toLocaleDateString();
+      return `- **${s.title}** (${s.provider}) | ${amount} | Deadline: ${deadline} | ${s.country}`;
+    })
+    .join("\n");
+}
+
+const parseBudgetFromMessage = (message) => {
+  const lower = message.toLowerCase();
+  const normalized = lower.replace(/,/g, "");
+  const underPattern = /\b(under|below|less than|max(?:imum)?|upto|up to)\s+(\d+(?:\.\d+)?)\s*(lakh|lac|k)?\b/i;
+  const amountOnlyPattern = /\b(\d+(?:\.\d+)?)\s*(lakh|lac|k)\b/i;
+
+  const parseAmount = (numText, unit) => {
+    const base = Number(numText);
+    if (!Number.isFinite(base)) {
+      return null;
+    }
+    if (!unit) {
+      return base;
+    }
+    const u = unit.toLowerCase();
+    if (u === "k") {
+      return base * 1000;
+    }
+    if (u === "lakh" || u === "lac") {
+      return base * 100000;
+    }
+    return base;
+  };
+
+  const underMatch = normalized.match(underPattern);
+  if (underMatch) {
+    const amount = parseAmount(underMatch[2], underMatch[3]);
+    if (amount) {
+      return amount;
+    }
+  }
+
+  const hasBudgetIntent =
+    normalized.includes("budget") ||
+    normalized.includes("inr") ||
+    normalized.includes("rupee") ||
+    normalized.includes("rs");
+  const amountOnlyMatch = normalized.match(amountOnlyPattern);
+  if (hasBudgetIntent && amountOnlyMatch) {
+    const amount = parseAmount(amountOnlyMatch[1], amountOnlyMatch[2]);
+    if (amount) {
+      return amount;
+    }
+  }
+
+  return null;
+}
+
+const getBasicBotResponse = async (message, user = null) => {
+  const lower = message.toLowerCase();
+  const hasWord = (word) => new RegExp(`\\b${word}\\b`, "i").test(message);
+  const isSuggestionQuery =
+    lower.includes("suggest") ||
+    lower.includes("recommend") ||
+    lower.includes("scholarship") ||
+    lower.includes("which one") ||
+    lower.includes("best");
+  const requestedCountry = detectCountryFromMessage(message) || user?.country || null;
+  const budgetCap = parseBudgetFromMessage(message);
+
+  if (hasWord("hello") || hasWord("hi") || hasWord("hey")) {
+    return "Hello! I am ScholarBot. Ask me about scholarships, eligibility, deadlines, documents, and application steps."
+  }
+
+  if (lower.includes("eligib") || lower.includes("qualify") || lower.includes("requirement")) {
+    return "Eligibility usually depends on GPA/marks, course, country, and required documents. Open a scholarship detail page to check exact criteria."
+  }
+
+  if (lower.includes("apply") || lower.includes("application")) {
+    return "To apply: open a scholarship, check eligibility, click Apply Now, fill the form, upload documents, and submit."
+  }
+
+  if (lower.includes("deadline") || lower.includes("last date") || lower.includes("due")) {
+    try {
+      const where = {
+        isActive: true,
+        deadline: { gte: new Date() },
+      };
+      if (requestedCountry) {
+        where.country = { equals: requestedCountry, mode: "insensitive" };
+      }
+
+      const upcoming = await prisma.scholarship.findMany({
+        where,
+        orderBy: { deadline: "asc" },
+        take: 3,
+        select: {
+          title: true,
+          provider: true,
+          amount: true,
+          currency: true,
+          deadline: true,
+          country: true,
+        },
+      });
+
+      if (upcoming.length > 0) {
+        return `Here are upcoming scholarship deadlines${requestedCountry ? ` in ${requestedCountry}` : ""}:\n${formatScholarshipSuggestions(upcoming)}`
+      }
+    } catch (err) {
+      console.error("Basic bot deadline query failed:", err.message);
+    }
+    return "Each scholarship has its own deadline shown on the listing/detail page. Apply early to avoid last-minute issues."
+  }
+
+  if (lower.includes("document") || lower.includes("upload") || lower.includes("file")) {
+    return "Common documents: transcripts/marksheets, recommendation letters, personal statement, ID proof, and income proof (if required)."
+  }
+
+  if (lower.includes("internship")) {
+    return "I mainly help with scholarships. For internships, please check the platform's opportunities section or filters for country and domain."
+  }
+
+  if (isSuggestionQuery || lower.includes("india")) {
+    try {
+      const where = {
+        isActive: true,
+        deadline: { gte: new Date() },
+      };
+      if (requestedCountry) {
+        where.country = { equals: requestedCountry, mode: "insensitive" };
+      }
+      if (budgetCap) {
+        where.amount = { lte: budgetCap };
+      }
+
+      const scholarships = await prisma.scholarship.findMany({
+        where,
+        orderBy: [
+          { deadline: "asc" },
+          { amount: "desc" },
+        ],
+        take: 5,
+        select: {
+          title: true,
+          provider: true,
+          amount: true,
+          currency: true,
+          deadline: true,
+          country: true,
+        },
+      });
+
+      if (scholarships.length > 0) {
+        const budgetText = budgetCap ? ` under ${Number(budgetCap).toLocaleString()} budget` : "";
+        return `Here are scholarship suggestions${requestedCountry ? ` for ${requestedCountry}` : ""}${budgetText}:\n${formatScholarshipSuggestions(scholarships)}\n\nTell me your preferred country, category, or budget and I can narrow these down.`
+      }
+      return `I could not find active upcoming scholarships${requestedCountry ? ` for ${requestedCountry}` : ""}${budgetCap ? ` within ${Number(budgetCap).toLocaleString()} budget` : ""} right now. Try increasing budget or removing filters.`
+    } catch (err) {
+      console.error("Basic bot recommendation query failed:", err.message);
+    }
+    return "You can filter scholarships by country and category to get better suggestions."
+  }
+
+  return "I can help with eligibility, applications, deadlines, documents, recommendations, and tracking. What would you like to know?"
+}
+
 // Build rich context from the database
 const buildDatabaseContext = async (user) => {
   const contextParts = [];
@@ -302,8 +494,11 @@ router.post("/", optionalAuth, async (req, res) => {
 
   try {
     let response;
+    let aiUsed = false;
 
-    if (genAI) {
+    if (CHATBOT_MODE === "basic") {
+      response = await getBasicBotResponse(message, req.user);
+    } else if (genAI) {
       // Build database context
       const dbContext = await buildDatabaseContext(req.user);
 
@@ -323,7 +518,7 @@ router.post("/", optionalAuth, async (req, res) => {
       const systemPrompt = `${SYSTEM_PROMPT}\n\n--- Platform Data ---\n${dbContext}`;
 
       // Try models in order (fallback chain)
-      const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
+      const models = MODEL_CANDIDATES;
       let lastError = null;
 
       for (const modelName of models) {
@@ -336,10 +531,14 @@ router.post("/", optionalAuth, async (req, res) => {
 
           const result = await withRetry(() => chat.sendMessage(message), 2, 3000);
           response = result.response.text();
+          aiUsed = true;
           console.log(`✅ Chatbot responded via ${modelName}`);
           break; // Success — stop trying other models
         } catch (err) {
-          console.error(`❌ ${modelName} failed:`, err.message?.substring(0, 100));
+          console.error(`❌ ${modelName} failed:`, {
+            status: err.status,
+            message: err.message?.substring(0, 180),
+          });
           lastError = err;
           continue; // Try next model
         }
@@ -380,7 +579,7 @@ router.post("/", optionalAuth, async (req, res) => {
       // Silent fail on history save
     }
 
-    res.json({ response, isAI: !!genAI });
+    res.json({ response, isAI: aiUsed, fallback: !aiUsed });
   } catch (error) {
     console.error("Chatbot error:", error.message);
     // Fallback if AI fails

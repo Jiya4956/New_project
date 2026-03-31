@@ -15,6 +15,21 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const isStudentProfileComplete = (candidate) => {
+    if (!candidate || candidate.role !== 'student') return true
+    const profile = candidate.profile || {}
+    const required = ['country', 'course', 'marks', 'income', 'category']
+    return required.every((field) => !!profile[field])
+  }
+
+  const getPostAuthRedirect = (candidate) => {
+    if (!candidate) return '/'
+    if (candidate.role === 'admin') return '/admin'
+    return isStudentProfileComplete(candidate)
+      ? '/recommendations'
+      : '/profile?onboarding=1'
+  }
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -28,8 +43,11 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.get('/api/auth/profile');
       setUser(response.data);
+      return response.data
     } catch (error) {
       localStorage.removeItem('token');
+      setUser(null);
+      return null
     } finally {
       setLoading(false);
     }
@@ -76,6 +94,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateUser,
     fetchUser,
+    isStudentProfileComplete,
+    getPostAuthRedirect,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

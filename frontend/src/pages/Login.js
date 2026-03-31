@@ -7,7 +7,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
-  const { login } = useAuth();
+  const { login, fetchUser, getPostAuthRedirect } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -15,8 +15,9 @@ const Login = () => {
     setError('');
     setLoading(true);
     try {
-      const userData = await login(form.email, form.password);
-      navigate(userData?.role === 'admin' ? '/admin' : '/scholarships');
+      await login(form.email, form.password);
+      const freshUser = await fetchUser();
+      navigate(getPostAuthRedirect(freshUser), { replace: true });
     } catch (err) {
       setError(typeof err === 'string' ? err : 'Invalid email or password');
     } finally {

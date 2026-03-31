@@ -2,6 +2,96 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/api';
 
+const COURSE_OPTIONS = [
+  'Class 10',
+  'Class 12',
+  'Diploma (Polytechnic)',
+  'ITI',
+  'B.Tech Computer Science',
+  'B.Tech Information Technology',
+  'B.Tech Artificial Intelligence',
+  'B.Tech Data Science',
+  'B.Tech Electronics and Communication',
+  'B.Tech Electrical Engineering',
+  'B.Tech Mechanical Engineering',
+  'B.Tech Civil Engineering',
+  'B.Tech Chemical Engineering',
+  'B.Tech Aerospace Engineering',
+  'B.Tech Biotechnology',
+  'B.Tech Agricultural Engineering',
+  'B.Arch',
+  'B.Plan',
+  'MBBS',
+  'BDS',
+  'BAMS',
+  'BHMS',
+  'BUMS',
+  'BPT',
+  'BOT',
+  'B.Sc Nursing',
+  'GNM Nursing',
+  'B.Pharm',
+  'D.Pharm',
+  'B.Sc',
+  'B.Sc Computer Science',
+  'B.Sc Mathematics',
+  'B.Sc Physics',
+  'B.Sc Chemistry',
+  'B.Sc Biotechnology',
+  'B.Sc Agriculture',
+  'B.Com',
+  'B.Com (Hons)',
+  'BA',
+  'BA (Hons)',
+  'BBA',
+  'BMS',
+  'BCA',
+  'BCA (Data Analytics)',
+  'BJMC',
+  'BMM',
+  'BSW',
+  'LLB',
+  'BA LLB',
+  'BBA LLB',
+  'B.Com LLB',
+  'BFA',
+  'B.Des',
+  'BHM',
+  'BTTM',
+  'B.Ed',
+  'B.El.Ed',
+  'Bachelor of Social Work',
+  'Bachelor of Performing Arts',
+  'CA Foundation',
+  'CS Executive',
+  'CMA Foundation',
+  'M.Tech',
+  'ME',
+  'MCA',
+  'MBA',
+  'PGDM',
+  'M.Com',
+  'MA',
+  'M.Sc',
+  'M.Sc Data Science',
+  'M.Sc Biotechnology',
+  'M.Arch',
+  'M.Plan',
+  'LLM',
+  'MS',
+  'MD',
+  'MS (Medical)',
+  'MDS',
+  'M.Pharm',
+  'M.Ed',
+  'MPH',
+  'PhD',
+  'Postdoctoral',
+  'Certificate Course',
+  'Vocational Course',
+  'Other',
+];
+
 const Profile = () => {
   const { user, updateUser } = useAuth();
   const [formData, setFormData] = useState({
@@ -292,9 +382,17 @@ const Profile = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Course / Program</label>
-                    <input name="course" value={formData.course} onChange={handleChange}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent focus:bg-white dark:focus:bg-slate-900 transition-all duration-200 text-sm"
-                      placeholder="B.Tech Computer Science" />
+                    <select
+                      name="course"
+                      value={formData.course}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent focus:bg-white dark:focus:bg-slate-900 transition-all duration-200 text-sm appearance-none cursor-pointer"
+                    >
+                      <option value="">Select course/program</option>
+                      {COURSE_OPTIONS.map((course) => (
+                        <option key={course} value={course}>{course}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">University / College</label>

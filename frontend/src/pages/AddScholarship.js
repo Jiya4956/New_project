@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
+import { ChronoSelect } from '../components/ui/chrono-select';
 
 const CATEGORIES = ['Academic', 'Need-Based', 'Merit-Based', 'International', 'Government', 'Private'];
 const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'CAD', 'AUD'];
@@ -19,7 +20,7 @@ const initialForm = {
   applicationProcess: '',
   description: '',
   contactEmail: '',
-  documents: '',
+  documents: [],
 };
 
 const AddScholarship = () => {
@@ -28,6 +29,7 @@ const AddScholarship = () => {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
   const [errors, setErrors] = useState({});
+  const [documentInput, setDocumentInput] = useState('');
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -61,9 +63,7 @@ const AddScholarship = () => {
       const payload = {
         ...form,
         amount: parseFloat(form.amount),
-        documents: form.documents
-          ? form.documents.split(',').map(d => d.trim()).filter(Boolean)
-          : [],
+        documents: form.documents,
       };
       await api.post('/api/scholarships', payload);
       showToast('🎉 Scholarship added successfully! Students can now apply.');
@@ -80,6 +80,24 @@ const AddScholarship = () => {
       setForm(initialForm);
       setErrors({});
     }
+  };
+
+  const handleAddDocument = () => {
+    const value = documentInput.trim();
+    if (!value) return;
+    if (form.documents.includes(value)) {
+      setDocumentInput('');
+      return;
+    }
+    setForm((prev) => ({ ...prev, documents: [...prev.documents, value] }));
+    setDocumentInput('');
+  };
+
+  const handleRemoveDocument = (docToRemove) => {
+    setForm((prev) => ({
+      ...prev,
+      documents: prev.documents.filter((doc) => doc !== docToRemove),
+    }));
   };
 
   const Field = ({ label, required, error, children }) => (
@@ -233,13 +251,12 @@ const AddScholarship = () => {
               </Field>
 
               <Field label="Application Deadline" required error={errors.deadline}>
-                <input
-                  id="scholarship-deadline"
-                  type="date"
-                  value={form.deadline}
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={e => set('deadline', e.target.value)}
-                  className={`input ${errors.deadline ? 'border-red-400 focus:ring-red-400' : ''}`}
+                <ChronoSelect
+                  value={form.deadline ? new Date(form.deadline) : undefined}
+                  onChange={(date) => set('deadline', date ? date.toISOString().slice(0, 10) : '')}
+                  placeholder="Select deadline date"
+                  yearRange={[new Date().getFullYear(), new Date().getFullYear() + 10]}
+                  className={errors.deadline ? 'border-red-400 focus:ring-red-400' : ''}
                 />
               </Field>
 
@@ -289,14 +306,45 @@ const AddScholarship = () => {
 
               <div className="sm:col-span-2">
                 <Field label="Required Documents">
-                  <input
-                    id="scholarship-documents"
-                    value={form.documents}
-                    onChange={e => set('documents', e.target.value)}
-                    placeholder="Separate by commas: Marksheet, Aadhar Card, Income Certificate"
-                    className="input"
-                  />
-                  <p className="mt-1 text-xs text-slate-400">Enter each document name separated by a comma.</p>
+                  <div className="flex gap-2">
+                    <input
+                      id="scholarship-documents"
+                      value={documentInput}
+                      onChange={e => setDocumentInput(e.target.value)}
+                      placeholder="e.g. Academic transcripts"
+                      className="input"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddDocument}
+                      className="btn-secondary px-4 py-2 whitespace-nowrap"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Add one document at a time. Write "(optional)" in name if not mandatory.
+                  </p>
+                  {form.documents.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {form.documents.map((doc) => (
+                        <span
+                          key={doc}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700"
+                        >
+                          {doc}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDocument(doc)}
+                            className="text-blue-500 hover:text-red-500"
+                            aria-label={`Remove ${doc}`}
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </Field>
               </div>
 

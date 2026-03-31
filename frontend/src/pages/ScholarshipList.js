@@ -2,6 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/api';
+import { Button } from '../components/ui/button';
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectValue,
+  SelectItem,
+} from '../components/ui/select';
 
 const CATEGORY_OPTS = ['', 'Academic', 'Need-Based', 'Merit-Based', 'International', 'Government', 'Private'];
 const EDUCATION_OPTS = ['', 'High School', 'Undergraduate', 'Graduate', 'Postgraduate', 'Any'];
@@ -28,77 +36,73 @@ const ScholarshipCard = ({ s, onBookmark, bookmarked, applied }) => {
   const daysLeft = Math.ceil((new Date(s.deadline) - new Date()) / (1000 * 60 * 60 * 24));
 
   return (
-    <div className="scholarship-card animate-fadeInUp">
-      <div className="card-header">
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <span className={`badge ${CATEGORY_COLORS[s.category] || 'badge-gray'}`}>
-            {s.category}
-          </span>
-          <div className="flex items-center gap-2">
-            {applied && (
-              <span className="badge badge-green text-xs">✓ Applied</span>
+    <div className="card p-5 animate-fadeInUp border border-slate-200/70 dark:border-slate-700/70">
+      <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <span className={`badge ${CATEGORY_COLORS[s.category] || 'badge-gray'}`}>
+              {s.category}
+            </span>
+            {applied && <span className="badge badge-green text-xs">✓ Applied</span>}
+            {daysLeft <= 30 && daysLeft > 0 && <span className="badge badge-red text-xs">⏰ {daysLeft}d left</span>}
+            {daysLeft <= 0 && <span className="badge badge-red text-xs">Expired</span>}
+          </div>
+
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1 leading-snug truncate-2">{s.title}</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">{s.provider}</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mb-1 flex flex-wrap items-center gap-1">
+            <span>🌍</span> {s.country}
+            {s.eligibility?.educationLevel && s.eligibility.educationLevel !== 'Any' && (
+              <><span className="mx-1">·</span><span>🎓 {s.eligibility.educationLevel}</span></>
             )}
-            {daysLeft <= 30 && daysLeft > 0 && (
-              <span className="badge badge-red text-xs">⏰ {daysLeft}d left</span>
+          </p>
+        </div>
+
+        <div className="lg:w-[320px] flex-shrink-0">
+          <div className="flex items-end justify-between mb-4">
+            <div>
+              <p className="text-xs text-slate-400 mb-0.5">Amount</p>
+              <div className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
+                {s.currency} {s.amount?.toLocaleString()}
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-slate-400 mb-0.5">Deadline</p>
+              <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                {new Date(s.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link to={`/scholarships/${s._id}`} className="btn-primary text-sm py-2.5 flex-1 text-center">
+              Details
+            </Link>
+            {user && !applied && (
+              <Link to={`/apply/${s._id}`} className="btn-secondary text-sm py-2.5 flex-1 text-center">
+                Apply
+              </Link>
             )}
-            {daysLeft <= 0 && (
-              <span className="badge badge-red text-xs">Expired</span>
+            {user && applied && (
+              <span className="inline-flex items-center justify-center gap-1.5 text-sm py-2.5 flex-1 text-center font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl cursor-default">
+                ✅ Applied
+              </span>
+            )}
+            {user && (
+              <button
+                onClick={() => onBookmark(s._id)}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all border ${
+                  bookmarked
+                    ? 'bg-amber-50 border-amber-200 text-amber-500 dark:bg-amber-900/20 dark:border-amber-800'
+                    : 'bg-slate-50 border-slate-200 text-slate-400 hover:bg-amber-50 hover:text-amber-500 dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-amber-900/20'
+                }`}
+                title={bookmarked ? 'Remove bookmark' : 'Bookmark'}
+              >
+                {bookmarked ? '🔖' : '🏷️'}
+              </button>
             )}
           </div>
         </div>
-
-        <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1 truncate-2 leading-snug">{s.title}</h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">{s.provider}</p>
-        <p className="text-xs text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-1">
-          <span>🌍</span> {s.country}
-          {s.eligibility?.educationLevel && s.eligibility.educationLevel !== 'Any' && (
-            <><span className="mx-1">·</span><span>🎓 {s.eligibility.educationLevel}</span></>
-          )}
-        </p>
-
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="text-xs text-slate-400 mb-0.5">Amount</p>
-            <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-              {s.currency} {s.amount?.toLocaleString()}
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-slate-400 mb-0.5">Deadline</p>
-            <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-              {new Date(s.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="card-footer">
-        <Link to={`/scholarships/${s._id}`} className="btn-primary text-sm py-2.5 flex-1 text-center">
-          Details
-        </Link>
-        {user && !applied && (
-          <Link to={`/apply/${s._id}`} className="btn-secondary text-sm py-2.5 flex-1 text-center">
-            Apply
-          </Link>
-        )}
-        {user && applied && (
-          <span className="inline-flex items-center justify-center gap-1.5 text-sm py-2.5 flex-1 text-center font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl cursor-default">
-            ✅ Applied
-          </span>
-        )}
-        {user && (
-          <button
-            onClick={() => onBookmark(s._id)}
-            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all border ${
-              bookmarked
-                ? 'bg-amber-50 border-amber-200 text-amber-500 dark:bg-amber-900/20 dark:border-amber-800'
-                : 'bg-slate-50 border-slate-200 text-slate-400 hover:bg-amber-50 hover:text-amber-500 dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-amber-900/20'
-            }`}
-            title={bookmarked ? 'Remove bookmark' : 'Bookmark'}
-          >
-            {bookmarked ? '🔖' : '🏷️'}
-          </button>
-        )}
       </div>
     </div>
   );
@@ -182,14 +186,16 @@ const ScholarshipList = () => {
   };
 
   const activeFilterCount = [filters.category, filters.country, filters.search, filters.educationLevel].filter(Boolean).length;
+  const categoryValue = filters.category || 'all';
+  const educationValue = filters.educationLevel || 'all';
 
   return (
     <div className="bg-slate-50 dark:bg-slate-900 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white mb-2">
+        <div className="mb-6">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mb-2">
             Browse Scholarships
           </h1>
           <p className="text-slate-500 dark:text-slate-400">
@@ -197,106 +203,67 @@ const ScholarshipList = () => {
           </p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* ── SIDEBAR FILTERS ───────────────────────────────────── */}
-          <aside className="lg:w-72 flex-shrink-0">
-            {/* Mobile filter toggle */}
-            <button
-              onClick={() => setFiltersOpen(!filtersOpen)}
-              className="lg:hidden w-full flex items-center justify-between p-4 card mb-4"
-            >
-              <span className="font-semibold text-slate-900 dark:text-white">
-                🔧 Filters {activeFilterCount > 0 && <span className="badge-blue badge ml-2">{activeFilterCount}</span>}
-              </span>
-              <svg className={`w-5 h-5 text-slate-400 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            <div className={`${filtersOpen || 'hidden lg:block'} space-y-4`}>
-              {/* Search */}
-              <div className="card p-5">
-                <label className="label">🔍 Search</label>
-                <input
-                  type="text"
-                  value={filters.search}
-                  onChange={e => handleFilterChange('search', e.target.value)}
-                  placeholder="Keywords, title, provider..."
-                  className="input text-sm"
-                  id="scholarship-search"
-                />
-              </div>
-
-              {/* Category */}
-              <div className="card p-5">
-                <label className="label">📂 Category</label>
-                <div className="space-y-2">
-                  {CATEGORY_OPTS.map(cat => (
-                    <button
-                      key={cat}
-                      onClick={() => handleFilterChange('category', filters.category === cat ? '' : cat)}
-                      className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-all ${
-                        filters.category === cat && cat !== ''
-                          ? 'bg-blue-600 text-white font-medium'
-                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      {cat || 'All Categories'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Country */}
-              <div className="card p-5">
-                <label className="label">🌍 Country</label>
-                <input
-                  type="text"
-                  value={filters.country}
-                  onChange={e => handleFilterChange('country', e.target.value)}
-                  placeholder="e.g. India, USA, UK..."
-                  className="input text-sm"
-                />
-              </div>
-
-              {/* Education Level */}
-              <div className="card p-5">
-                <label className="label">🎓 Education Level</label>
-                <select
-                  value={filters.educationLevel}
-                  onChange={e => handleFilterChange('educationLevel', e.target.value)}
-                  className="input text-sm"
-                >
-                  {EDUCATION_OPTS.map(opt => (
-                    <option key={opt} value={opt}>{opt || 'Any Level'}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Sort */}
-              <div className="card p-5">
-                <label className="label">⬆️ Sort By</label>
-                <select
-                  value={filters.sort}
-                  onChange={e => handleFilterChange('sort', e.target.value)}
-                  className="input text-sm"
-                >
-                  {SORT_OPTS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {activeFilterCount > 0 && (
-                <button onClick={clearFilters} className="w-full btn-secondary text-sm py-3">
-                  ✕ Clear All Filters
-                </button>
-              )}
+        {/* Top filter bar */}
+        <div className="card p-4 mb-6 sticky top-20 z-20">
+          <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+            <div className="flex-1">
+              <input
+                type="text"
+                value={filters.search}
+                onChange={e => handleFilterChange('search', e.target.value)}
+                placeholder="Search by title, provider, country..."
+                className="input text-sm"
+                id="scholarship-search-top"
+              />
             </div>
-          </aside>
-
-          {/* ── MAIN CONTENT ─────────────────────────────────────── */}
-          <main className="flex-1">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:flex lg:flex-row gap-2">
+              <Select value={categoryValue} onValueChange={(v) => handleFilterChange('category', v === 'all' ? '' : v)}>
+                <SelectTrigger className="min-w-[150px]">
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {CATEGORY_OPTS.filter(Boolean).map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={educationValue} onValueChange={(v) => handleFilterChange('educationLevel', v === 'all' ? '' : v)}>
+                <SelectTrigger className="min-w-[150px]">
+                  <SelectValue placeholder="Any Level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any Level</SelectItem>
+                  {EDUCATION_OPTS.filter(Boolean).map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={filters.sort} onValueChange={(v) => handleFilterChange('sort', v)}>
+                <SelectTrigger className="min-w-[150px]">
+                  <SelectValue placeholder="Sort By" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SORT_OPTS.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={() => setFiltersOpen(!filtersOpen)} className="text-sm px-4 py-2.5">
+                More Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}
+              </Button>
+            </div>
+          </div>
+          {filtersOpen && (
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <input
+                type="text"
+                value={filters.country}
+                onChange={e => handleFilterChange('country', e.target.value)}
+                placeholder="Country (e.g. India)"
+                className="input text-sm"
+              />
+              <Button variant="outline" onClick={clearFilters} className="text-sm py-2.5">
+                ✕ Clear All Filters
+              </Button>
+            </div>
+          )}
+        </div>
+        <main>
             {/* Active filter chips */}
             {activeFilterCount > 0 && (
               <div className="flex flex-wrap gap-2 mb-4">
@@ -322,8 +289,8 @@ const ScholarshipList = () => {
             )}
 
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                {[...Array(9)].map((_, i) => (
+              <div className="space-y-4">
+                {[...Array(6)].map((_, i) => (
                   <div key={i} className="card p-6">
                     <div className="shimmer h-5 rounded w-1/3 mb-3" />
                     <div className="shimmer h-5 rounded w-3/4 mb-2" />
@@ -341,7 +308,7 @@ const ScholarshipList = () => {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                <div className="space-y-4">
                   {scholarships.map(s => (
                     <ScholarshipCard
                       key={s._id}
@@ -390,8 +357,7 @@ const ScholarshipList = () => {
                 )}
               </>
             )}
-          </main>
-        </div>
+        </main>
       </div>
     </div>
   );

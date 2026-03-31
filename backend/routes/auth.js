@@ -11,6 +11,7 @@ router.post('/login', authController.login);
 router.get('/profile', protect, authController.getProfile);
 router.put('/profile', protect, authController.updateProfile);
 router.get('/users', protect, authorize('admin'), authController.getAllUsers);
+router.put('/users/:id/access', protect, authorize('admin'), authController.updateUserAccess);
 
 // Google OAuth
 router.get('/google', passport.authenticate('google', {
@@ -21,6 +22,10 @@ router.get('/google', passport.authenticate('google', {
 router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: '/login', session: false }),
   (req, res) => {
+    if (req.user?.isActive === false) {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/login?error=access_revoked`);
+    }
     // Generate JWT token for the Google user
     const token = jwt.sign({ id: req.user.id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 

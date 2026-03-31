@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/api';
+import { Button } from '../components/ui/button';
 
 const TAGS = ['General', 'Eligibility', 'Application', 'Documents', 'International', 'Government', 'BTech', 'MBA', 'Medicine', 'Tips'];
 
@@ -93,24 +94,27 @@ const Forum = () => {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="mb-8 rounded-2xl border border-indigo-200/40 dark:border-indigo-700/40 bg-gradient-to-r from-indigo-600 to-blue-700 p-6 text-white shadow-lg">
+          <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white mb-2">Discussion Forum</h1>
-            <p className="text-slate-500 dark:text-slate-400">Ask questions, share tips, and connect with fellow students</p>
+              <h1 className="text-3xl font-extrabold mb-1">Discussion Forum</h1>
+              <p className="text-indigo-100">Ask questions, share tips, and connect with fellow students</p>
           </div>
           {user ? (
-            <button
+            <Button
               onClick={() => setShowForm(!showForm)}
-              className="btn-primary"
+              variant="secondary"
+              className="bg-white/15 hover:bg-white/25 text-white border-white/20"
               id="new-post-btn"
             >
               {showForm ? '✕ Cancel' : '✏️ New Post'}
-            </button>
+            </Button>
           ) : (
-            <Link to="/login" className="btn-primary">
+              <Link to="/login" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-indigo-700 font-semibold">
               🔐 Login to Post
             </Link>
           )}
+          </div>
         </div>
 
         {/* New Post Form */}
@@ -154,15 +158,16 @@ const Forum = () => {
                   ))}
                 </div>
               </div>
-              <button type="submit" disabled={submitting} className="btn-primary" id="post-submit">
+              <Button type="submit" disabled={submitting} id="post-submit">
                 {submitting ? '⏳ Posting...' : '🚀 Publish Post'}
-              </button>
+              </Button>
             </form>
           </div>
         )}
 
         {/* Tag Filter */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+        <div className="card p-3 mb-6">
+          <div className="flex gap-2 overflow-x-auto pb-1">
           <button
             onClick={() => setActiveTag('')}
             className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
@@ -182,6 +187,7 @@ const Forum = () => {
               {tag}
             </button>
           ))}
+          </div>
         </div>
 
         {/* Posts List */}
@@ -205,7 +211,7 @@ const Forum = () => {
         ) : (
           <div className="space-y-4">
             {posts.map(post => (
-              <div key={post._id} className="forum-post">
+              <div key={post._id} className="forum-post rounded-2xl border border-slate-200/70 dark:border-slate-700/70 shadow-sm">
                 {/* Post Header */}
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div className="flex items-center gap-3 flex-1">

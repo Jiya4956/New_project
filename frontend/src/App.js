@@ -22,6 +22,7 @@ import Recommendations from './pages/Recommendationss';
 import Forum from './pages/Forum';
 import GoogleCallback from './pages/GoogleCallback';
 import AddScholarship from './pages/AddScholarship';
+import AdminApplicationDetail from './pages/AdminApplicationDetail';
 
 function App() {
   return (
@@ -50,6 +51,7 @@ function App() {
               <Route path="/admin"                  element={<ProtectedRoute admin><AdminDashboard /></ProtectedRoute>} />
               <Route path="/admin/add-scholarship"   element={<ProtectedRoute admin><AddScholarship /></ProtectedRoute>} />
               <Route path="/admin-feedback"          element={<ProtectedRoute admin><AdminFeedback /></ProtectedRoute>} />
+              <Route path="/admin/applications/:id"  element={<ProtectedRoute admin><AdminApplicationDetail /></ProtectedRoute>} />
             </Routes>
           </main>
           <Footer />

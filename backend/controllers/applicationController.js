@@ -1,6 +1,72 @@
 const prisma = require('../lib/prisma');
 const email  = require('../lib/emailService');
 const { createNotification, getAdmins } = require('../lib/notificationService');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const fs = require('fs');
+
+const hasR2Config = Boolean(
+  process.env.CLOUDFLARE_ACCOUNT_ID &&
+  process.env.R2_ACCESS_KEY_ID &&
+  process.env.R2_SECRET_ACCESS_KEY &&
+  process.env.R2_BUCKET_NAME
+);
+
+const r2Client = hasR2Config
+  ? new S3Client({
+      region: 'auto',
+      endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY_ID,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+      },
+    })
+  : null;
+
+exports.uploadApplicationDocument = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    let fileUrl = '';
+    const storageProvider = hasR2Config ? 'cloudflare-r2' : 'local';
+
+    if (hasR2Config) {
+      const key = `applications/${req.file.filename}`;
+      const fileBuffer = await fs.promises.readFile(req.file.path);
+
+      await r2Client.send(new PutObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: key,
+        Body: fileBuffer,
+        ContentType: req.file.mimetype,
+      }));
+
+      const base = String(process.env.R2_PUBLIC_BASE_URL || '').replace(/\/$/, '');
+      fileUrl = base ? `${base}/${key}` : `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com/${process.env.R2_BUCKET_NAME}/${key}`;
+
+      // Cleanup local temp copy after successful cloud upload
+      await fs.promises.unlink(req.file.path).catch(() => {});
+    } else {
+      const baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+      fileUrl = `${baseUrl}/uploads/applications/${req.file.filename}`;
+    }
+
+    res.status(201).json({
+      message: 'Document uploaded successfully',
+      file: {
+        originalName: req.file.originalname,
+        filename: req.file.filename,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        url: fileUrl,
+        storageProvider,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 exports.applyForScholarship = async (req, res) => {
   try {
@@ -28,6 +94,26 @@ exports.applyForScholarship = async (req, res) => {
 
     if (existing) {
       return res.status(400).json({ message: 'You have already applied for this scholarship' });
+    }
+
+    const submittedDocs = req.body?.personalInfo?.documents || {};
+    const scholarshipDocs = Array.isArray(scholarship.documents) ? scholarship.documents : [];
+    const requiredDocs = scholarshipDocs
+      .map((doc) => String(doc || '').trim())
+      .filter((doc) => doc && !/\boptional\b/i.test(doc));
+
+    const getDocumentUrl = (docEntry) => {
+      if (!docEntry) return '';
+      if (typeof docEntry === 'string') return docEntry.trim();
+      if (typeof docEntry === 'object') return String(docEntry.url || '').trim();
+      return '';
+    };
+
+    const missingDocs = requiredDocs.filter((doc) => !getDocumentUrl(submittedDocs[doc]));
+    if (missingDocs.length > 0) {
+      return res.status(400).json({
+        message: `Missing required documents: ${missingDocs.join(', ')}`,
+      });
     }
 
     const application = await prisma.application.create({

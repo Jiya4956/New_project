@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 const GoogleCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { fetchUser } = useAuth();
+  const { fetchUser, getPostAuthRedirect } = useAuth();
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -16,9 +16,9 @@ const GoogleCallback = () => {
       // Save token, then fetch full user profile
       localStorage.setItem('token', token);
       
-      fetchUser().then(() => {
-        // Redirect based on role
-        navigate(role === 'admin' ? '/admin' : '/', { replace: true });
+      fetchUser().then((freshUser) => {
+        const fallbackRole = role === 'admin' ? '/admin' : '/profile?onboarding=1';
+        navigate(freshUser ? getPostAuthRedirect(freshUser) : fallbackRole, { replace: true });
       });
     } else {
       setError('Authentication failed. No token received.');

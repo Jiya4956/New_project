@@ -1,10 +1,100 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/api';
 
+const COURSE_OPTIONS = [
+  'Class 10',
+  'Class 12',
+  'Diploma (Polytechnic)',
+  'ITI',
+  'B.Tech Computer Science',
+  'B.Tech Information Technology',
+  'B.Tech Artificial Intelligence',
+  'B.Tech Data Science',
+  'B.Tech Electronics and Communication',
+  'B.Tech Electrical Engineering',
+  'B.Tech Mechanical Engineering',
+  'B.Tech Civil Engineering',
+  'B.Tech Chemical Engineering',
+  'B.Tech Aerospace Engineering',
+  'B.Tech Biotechnology',
+  'B.Tech Agricultural Engineering',
+  'B.Arch',
+  'B.Plan',
+  'MBBS',
+  'BDS',
+  'BAMS',
+  'BHMS',
+  'BUMS',
+  'BPT',
+  'BOT',
+  'B.Sc Nursing',
+  'GNM Nursing',
+  'B.Pharm',
+  'D.Pharm',
+  'B.Sc',
+  'B.Sc Computer Science',
+  'B.Sc Mathematics',
+  'B.Sc Physics',
+  'B.Sc Chemistry',
+  'B.Sc Biotechnology',
+  'B.Sc Agriculture',
+  'B.Com',
+  'B.Com (Hons)',
+  'BA',
+  'BA (Hons)',
+  'BBA',
+  'BMS',
+  'BCA',
+  'BCA (Data Analytics)',
+  'BJMC',
+  'BMM',
+  'BSW',
+  'LLB',
+  'BA LLB',
+  'BBA LLB',
+  'B.Com LLB',
+  'BFA',
+  'B.Des',
+  'BHM',
+  'BTTM',
+  'B.Ed',
+  'B.El.Ed',
+  'Bachelor of Social Work',
+  'Bachelor of Performing Arts',
+  'CA Foundation',
+  'CS Executive',
+  'CMA Foundation',
+  'M.Tech',
+  'ME',
+  'MCA',
+  'MBA',
+  'PGDM',
+  'M.Com',
+  'MA',
+  'M.Sc',
+  'M.Sc Data Science',
+  'M.Sc Biotechnology',
+  'M.Arch',
+  'M.Plan',
+  'LLM',
+  'MS',
+  'MD',
+  'MS (Medical)',
+  'MDS',
+  'M.Pharm',
+  'M.Ed',
+  'MPH',
+  'PhD',
+  'Postdoctoral',
+  'Certificate Course',
+  'Vocational Course',
+  'Other',
+];
+
 const Recommendations = () => {
-  const { user } = useAuth();
+  const { user, fetchUser } = useAuth();
   const [profile, setProfile] = useState({
     course: user?.profile?.course || '',
     marks: user?.profile?.marks || '',
@@ -15,6 +105,7 @@ const Recommendations = () => {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState('');
+  const [autoFetched, setAutoFetched] = useState(false);
 
   const handleChange = (e) => {
     setProfile(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -34,6 +125,54 @@ const Recommendations = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!user) return
+    setProfile({
+      course: user.profile?.course || '',
+      marks: user.profile?.marks || '',
+      income: user.profile?.income || '',
+      category: user.profile?.category || '',
+    })
+  }, [user]);
+
+  useEffect(() => {
+    const syncLatestProfile = async () => {
+      try {
+        const freshUser = await fetchUser()
+        if (!freshUser) return
+        setProfile({
+          course: freshUser.profile?.course || '',
+          marks: freshUser.profile?.marks || '',
+          income: freshUser.profile?.income || '',
+          category: freshUser.profile?.category || '',
+        })
+      } catch {
+        // Ignore and continue with cached auth state
+      }
+    }
+    syncLatestProfile()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const courseOptions = profile.course && !COURSE_OPTIONS.includes(profile.course)
+    ? [profile.course, ...COURSE_OPTIONS]
+    : COURSE_OPTIONS;
+
+  useEffect(() => {
+    if (autoFetched) return
+    if (!user) return
+    const hasProfileSignals = !!(
+      user.profile?.course ||
+      user.profile?.marks ||
+      user.profile?.income ||
+      user.profile?.category
+    )
+    if (!hasProfileSignals) return
+    setAutoFetched(true)
+    getRecommendations()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, autoFetched]);
 
   return (
     <div className="bg-slate-50 dark:bg-slate-900 min-h-screen">
@@ -67,11 +206,18 @@ const Recommendations = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
             <div>
               <label className="label">🎓 Course / Program</label>
-              <input
-                name="course" value={profile.course} onChange={handleChange}
-                placeholder="e.g. B.Tech Computer Science" className="input"
+              <select
+                name="course"
+                value={profile.course}
+                onChange={handleChange}
+                className="input"
                 id="rec-course"
-              />
+              >
+                <option value="">Select course/program</option>
+                {courseOptions.map((course) => (
+                  <option key={course} value={course}>{course}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="label">📊 Marks / GPA (%)</label>

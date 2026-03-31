@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Markdown from 'react-markdown';
+import { useLocation } from 'react-router-dom';
 import api from '../api/api';
+import { useAuth } from '../context/AuthContext';
 
 const QUICK_REPLIES = [
   '🎓 Which scholarships suit me?',
@@ -11,6 +13,8 @@ const QUICK_REPLIES = [
 ];
 
 const Chatbot = () => {
+  const { user } = useAuth();
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
@@ -93,6 +97,12 @@ const Chatbot = () => {
     return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isAdminUser = user?.role === 'admin';
+  if (isAdminRoute || isAdminUser) {
+    return null;
+  }
+
   return (
     <>
       {/* Chat Window */}
@@ -113,7 +123,7 @@ const Chatbot = () => {
               <p className="font-semibold text-sm">ScholarBot</p>
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                <span className="text-xs opacity-90">Powered by Gemini AI</span>
+                <span className="text-xs opacity-90">Online</span>
               </div>
             </div>
             <button
