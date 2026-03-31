@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const prisma = require("../lib/prisma");
+const email = require('../lib/emailService');
+const { getAdmins } = require('../lib/notificationService');
+const { protect, authorize } = require('../middleware/auth');
 
 // Submit feedback
 router.post("/feedback", async (req, res) => {
@@ -15,6 +18,17 @@ router.post("/feedback", async (req, res) => {
       },
     });
 
+    // Email notifications (non-blocking)
+    email.sendFeedbackSubmitted(
+      { name: feedback.name, email: feedback.email },
+      feedback
+    );
+    getAdmins().then((admins) => {
+      admins.forEach((admin) => {
+        email.sendAdminFeedbackAlert(admin.email, feedback);
+      });
+    });
+
     res.status(200).json({
       message: "Feedback submitted successfully",
     });
@@ -27,7 +41,7 @@ router.post("/feedback", async (req, res) => {
 });
 
 // Get all feedback
-router.get("/feedback", async (req, res) => {
+router.get("/feedback", protect, authorize('admin'), async (req, res) => {
   try {
     const feedbacks = await prisma.feedback.findMany({
       orderBy: { createdAt: 'desc' },

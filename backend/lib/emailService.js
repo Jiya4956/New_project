@@ -1,14 +1,20 @@
 const nodemailer = require('nodemailer');
 
+let cachedTransporter = null;
+
 // Create transporter — uses Gmail SMTP via env vars
 const createTransporter = () => {
-  return nodemailer.createTransport({
-    service: 'gmail',
+  if (cachedTransporter) return cachedTransporter;
+  cachedTransporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
   });
+  return cachedTransporter;
 };
 
 const BRAND_COLOR = '#2563eb';
@@ -76,7 +82,7 @@ const send = async ({ to, subject, html }) => {
     });
     console.log(`[EMAIL SENT] To: ${to} | ${subject}`);
   } catch (err) {
-    console.error(`[EMAIL ERROR] ${err.message}`);
+    console.error(`[EMAIL ERROR] To: ${to} | Subject: ${subject} | ${err.message}`);
   }
 };
 
@@ -200,5 +206,46 @@ exports.sendAdminNewScholarship = (adminEmail, scholarship, createdByName) =>
           </tr>`).join('')}
       </table>
       ${btn('View Scholarships', `${FRONTEND_URL}/admin`)}
+    `),
+  });
+
+exports.sendFeedbackSubmitted = (user, feedback) =>
+  send({
+    to: user.email,
+    subject: '💬 Feedback Received — ScholarConnect',
+    html: wrap(`
+      <h2 style="color:#1e293b;font-size:20px;margin:0 0 8px;">Thanks for your feedback! 🙌</h2>
+      <p style="color:#64748b;margin:0 0 20px;">Hi <strong>${user.name}</strong>, we received your feedback successfully.</p>
+      <div style="background:#eff6ff;border-left:4px solid ${BRAND_COLOR};border-radius:8px;padding:16px 20px;margin:20px 0;">
+        <p style="margin:0;color:#1e3a8a;font-weight:600;">Subject: ${feedback.subject || 'General'}</p>
+        <p style="margin:4px 0 0;color:#475569;font-size:13px;">Rating: ${Number(feedback.rating || 0)} / 5</p>
+      </div>
+      <p style="color:#64748b;font-size:14px;">Our team will review it and keep improving your experience.</p>
+      ${btn('Back to Portal', `${FRONTEND_URL}`)}
+    `),
+  });
+
+exports.sendAdminFeedbackAlert = (adminEmail, feedback) =>
+  send({
+    to: adminEmail,
+    subject: `📝 New Feedback — ${feedback.subject || 'General'}`,
+    html: wrap(`
+      <h2 style="color:#1e293b;font-size:20px;margin:0 0 20px;">New Feedback Submitted</h2>
+      <table style="width:100%;border-collapse:collapse;">
+        ${[
+            ['Name', feedback.name],
+            ['Email', feedback.email],
+            ['Subject', feedback.subject || 'General'],
+            ['Rating', `${Number(feedback.rating || 0)} / 5`],
+          ].map(([k,v]) => `
+          <tr>
+            <td style="padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;font-weight:600;color:#475569;font-size:13px;width:30%;">${k}</td>
+            <td style="padding:10px 12px;border:1px solid #e2e8f0;color:#1e293b;font-size:14px;">${v || '—'}</td>
+          </tr>`).join('')}
+      </table>
+      <div style="margin-top:16px;padding:14px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;">
+        <p style="margin:0;color:#334155;font-size:14px;white-space:pre-wrap;">${feedback.message || ''}</p>
+      </div>
+      ${btn('Open Admin Feedback', `${FRONTEND_URL}/admin-feedback`)}
     `),
   });
